@@ -1,8 +1,44 @@
+# Dépendances pour le projet d'apprentissage par renforcement
+
+# Calcul scientifique et manipulation de données
 numpy>=1.21.0
-matplotlib>=3.4.0
 pandas>=1.3.0
+scipy>=1.7.0
+
+# Visualisation
+matplotlib>=3.4.0
+seaborn>=0.11.0
+plotly>=5.0.0
+
+# Interface graphique pour pygame (optionnel)
+pygame>=2.1.0
+
+# Gestion des notebooks Jupyter
 jupyter>=1.0.0
-pytest>=6.2.5
-gym>=0.21.0
+ipykernel>=6.0.0
+notebook>=6.4.0
+
+# Utilitaires pour le machine learning
+scikit-learn>=1.0.0
+
+# Gestion des configurations et fichiers
+pyyaml>=5.4.0
+toml>=0.10.0
+
+# Outils de développement et tests
+pytest>=6.2.0
+pytest-cov>=2.12.0
+
+# Documentation
+sphinx>=4.0.0
+sphinx-rtd-theme>=0.5.0
+
+# Formatage de code (optionnel)
+black>=21.0.0
+flake8>=3.9.0
+
+# Barres de progression
 tqdm>=4.62.0
-seaborn>=0.11.0 
+
+# Gestion des types (optionnel mais recommandé)
+typing-extensions>=3.10.0

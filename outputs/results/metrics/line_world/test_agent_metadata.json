@@ -1,0 +1,79 @@
+{
+  "agent_name": "TestAgent_LineWorld_QLearning",
+  "session_info": {
+    "created_at": "2025-07-01T20:06:56.654022",
+    "algorithm": "Q-Learning",
+    "environment": "LineWorld",
+    "state_space_size": 5,
+    "action_space_size": 2
+  },
+  "training_history": [
+    {
+      "algorithm": "Q-Learning",
+      "episodes_trained": 200,
+      "avg_reward": 9.607000000000001,
+      "std_reward": 0.3148825177744867,
+      "min_reward": 7.1,
+      "max_reward": 9.7,
+      "avg_steps": 4.345,
+      "final_episode_reward": 9.7,
+      "is_converged": true,
+      "agent_name": "TestAgent_LineWorld_QLearning",
+      "training_time": 0.01130223274230957,
+      "episodes_per_second": 17695.618605632317,
+      "timestamp": "2025-07-01T20:06:56.665381"
+    }
+  ],
+  "evaluation_history": [
+    {
+      "avg_reward": 9.7,
+      "std_reward": 0.0,
+      "min_reward": 9.7,
+      "max_reward": 9.7,
+      "avg_episode_length": 4.0,
+      "std_episode_length": 0.0,
+      "num_episodes": 50,
+      "agent_name": "TestAgent_LineWorld_QLearning",
+      "evaluation_time": 0.0003757476806640625,
+      "timestamp": "2025-07-01T20:06:56.665819",
+      "episodes_evaluated": 50
+    }
+  ],
+  "performance_summary": {
+    "agent_info": {
+      "name": "TestAgent_LineWorld_QLearning",
+      "algorithm": "Q-Learning",
+      "environment": "LineWorld",
+      "is_trained": true
+    },
+    "session_info": {
+      "created_at": "2025-07-01T20:06:56.654022",
+      "algorithm": "Q-Learning",
+      "environment": "LineWorld",
+      "state_space_size": 5,
+      "action_space_size": 2
+    },
+    "training": {
+      "sessions_completed": 1,
+      "latest_avg_reward": 9.607000000000001,
+      "latest_final_reward": 9.7,
+      "total_episodes": 200,
+      "last_training_time": 0.01130223274230957
+    },
+    "evaluation": {
+      "evaluations_completed": 1,
+      "latest_avg_reward": 9.7,
+      "latest_std_reward": 0.0,
+      "latest_avg_episode_length": 4.0
+    },
+    "hyperparameters": {
+      "gamma": 0.9,
+      "epsilon": 0.03669578217261672,
+      "learning_rate": 0.1,
+      "epsilon_decay": 0.995,
+      "epsilon_min": 0.01,
+      "initial_q_value": 0.0,
+      "convergence_threshold": 0.0001
+    }
+  }
+}
