@@ -3,12 +3,20 @@ Classe abstraite de base pour tous les algorithmes d'apprentissage par renforcem
 
 Cette classe définit l'interface commune que tous les algorithmes doivent respecter
 pour être compatibles avec les environnements et le système d'expérimentation.
+
+Cette version améliorée supporte :
+- Configuration via JSON avec from_config()
+- Entraînement autonome (style professeur)
+- Interface standardisée pour Agent wrapper
+- Métriques de convergence avancées
 """
 
 from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple, Any, Optional, Union
 import numpy as np
+import time
 from dataclasses import dataclass
+from datetime import datetime
 
 
 @dataclass
@@ -27,6 +35,10 @@ class BaseAlgorithm(ABC):
     
     Tous les algorithmes (Q-Learning, SARSA, Policy Iteration, etc.) doivent
     hériter de cette classe et implémenter les méthodes abstraites.
+    
+    Architecture Hybride :
+    - Phase 1 : Entraînement autonome avec configuration JSON
+    - Phase 2 : Compatible avec Agent wrapper pour post-entraînement
     """
     
     def __init__(self, 
@@ -51,16 +63,44 @@ class BaseAlgorithm(ABC):
         self.gamma = kwargs.get('gamma', 0.9)  # Facteur d'actualisation
         self.epsilon = kwargs.get('epsilon', 0.1)  # Exploration
         
+        # Métriques de convergence
+        self.convergence_threshold = kwargs.get('convergence_threshold', 1e-4)
+        
         # Statistiques d'entraînement
         self.training_stats: List[TrainingStats] = []
         self.is_trained = False
         self.episode_count = 0
+        self.training_start_time = None
+        self.training_end_time = None
         
         # Politiques et fonctions de valeur (initialisées par les sous-classes)
         self.policy = None
         self.value_function = None
         self.q_function = None
         
+        # Configuration source (pour debugging et reproductibilité)
+        self._source_config = kwargs.copy()
+    
+    @classmethod
+    @abstractmethod
+    def from_config(cls, config: Dict[str, Any], environment) -> 'BaseAlgorithm':
+        """
+        NOUVELLE MÉTHODE : Crée un algorithme depuis une configuration JSON.
+        
+        Cette méthode permet l'approche hybride : configuration JSON -> entraînement autonome.
+        
+        Args:
+            config (Dict[str, Any]): Configuration de l'algorithme depuis JSON
+            environment: Environnement d'entraînement (pour les tailles d'espaces)
+            
+        Returns:
+            BaseAlgorithm: Instance configurée de l'algorithme
+            
+        Raises:
+            ValueError: Si la configuration est invalide
+        """
+        pass
+    
     @property
     @abstractmethod
     def algorithm_type(self) -> str:
@@ -82,7 +122,10 @@ class BaseAlgorithm(ABC):
     @abstractmethod
     def train(self, environment, num_episodes: int, **kwargs) -> Dict[str, Any]:
         """
-        Entraîne l'algorithme sur un environnement.
+        MODIFIÉE : Entraîne l'algorithme de manière autonome (style professeur).
+        
+        Cette méthode implémente l'entraînement autonome pour l'approche hybride.
+        L'algorithme se débrouille tout seul, sans dépendre d'un Agent.
         
         Args:
             environment: Environnement d'entraînement
@@ -101,7 +144,7 @@ class BaseAlgorithm(ABC):
         
         Args:
             state (int): État actuel
-            **kwargs: Paramètres pour la sélection (exploration, etc.)
+            **kwargs: Paramètres pour la sélection (training=True/False, etc.)
             
         Returns:
             int: Action sélectionnée
@@ -153,6 +196,123 @@ class BaseAlgorithm(ABC):
             bool: True si le chargement a réussi
         """
         pass
+    
+    # ==================== NOUVELLES MÉTHODES POUR APPROCHE HYBRIDE ====================
+    
+    def to_config(self) -> Dict[str, Any]:
+        """
+        NOUVELLE : Exporte la configuration actuelle de l'algorithme.
+        
+        Utile pour sauvegarder les hyperparamètres utilisés et reproduire les expériences.
+        
+        Returns:
+            Dict[str, Any]: Configuration exportable en JSON
+        """
+        base_config = {
+            'algorithm_type': self.algorithm_type,
+            'algo_name': self.algo_name,
+            'gamma': self.gamma,
+            'epsilon': self.epsilon,
+            'convergence_threshold': self.convergence_threshold,
+            'state_space_size': self.state_space_size,
+            'action_space_size': self.action_space_size
+        }
+        
+        # Ajout de la configuration source si disponible
+        if hasattr(self, '_source_config'):
+            base_config.update(self._source_config)
+        
+        return base_config
+    
+    def get_training_results(self) -> Dict[str, Any]:
+        """
+        NOUVELLE : Retourne un résumé complet des résultats d'entraînement.
+        
+        Conçu pour l'Agent wrapper qui a besoin d'analyser les performances
+        sans connaître les détails internes de l'algorithme.
+        
+        Returns:
+            Dict[str, Any]: Résultats d'entraînement formatés
+        """
+        if not self.training_stats:
+            return {"message": "Aucune donnée d'entraînement disponible"}
+        
+        rewards = [stats.total_reward for stats in self.training_stats]
+        steps = [stats.steps for stats in self.training_stats]
+        convergence_metrics = [stats.convergence_metric for stats in self.training_stats 
+                              if stats.convergence_metric is not None]
+        
+        results = {
+            "algorithm": self.algo_name,
+            "episodes_trained": len(self.training_stats),
+            "is_trained": self.is_trained,
+            "training_time": self._get_training_duration(),
+            
+            # Statistiques de récompenses
+            "avg_reward": np.mean(rewards),
+            "std_reward": np.std(rewards),
+            "min_reward": np.min(rewards),
+            "max_reward": np.max(rewards),
+            "final_episode_reward": rewards[-1],
+            
+            # Statistiques d'épisodes
+            "avg_episode_length": np.mean(steps),
+            "std_episode_length": np.std(steps),
+            "min_episode_length": np.min(steps),
+            "max_episode_length": np.max(steps),
+            
+            # Convergence
+            "convergence_data": convergence_metrics,
+            "converged": self._check_convergence(),
+            
+            # Métadonnées
+            "hyperparameters": self.get_hyperparameters(),
+            "config_source": getattr(self, '_source_config', {}),
+        }
+        
+        return results
+    
+    def _get_training_duration(self) -> float:
+        """Calcule la durée d'entraînement."""
+        if self.training_start_time and self.training_end_time:
+            return self.training_end_time - self.training_start_time
+        return 0.0
+    
+    def is_ready_for_evaluation(self) -> bool:
+        """
+        NOUVELLE : Vérifie si l'algorithme est prêt pour l'évaluation post-entraînement.
+        
+        L'Agent wrapper peut utiliser cette méthode pour valider que l'algorithme
+        est dans un état utilisable.
+        
+        Returns:
+            bool: True si prêt pour évaluation
+        """
+        return (self.is_trained and 
+                self.policy is not None and 
+                len(self.training_stats) > 0)
+    
+    def get_algorithm_info(self) -> Dict[str, Any]:
+        """
+        NOUVELLE : Retourne les informations essentielles de l'algorithme.
+        
+        Utile pour l'Agent wrapper et les comparaisons d'algorithmes.
+        
+        Returns:
+            Dict[str, Any]: Informations de l'algorithme
+        """
+        return {
+            "name": self.algo_name,
+            "type": self.algorithm_type,
+            "state_space_size": self.state_space_size,
+            "action_space_size": self.action_space_size,
+            "is_trained": self.is_trained,
+            "episode_count": self.episode_count,
+            "convergence_threshold": self.convergence_threshold,
+            "required_features": self.required_environment_features
+        }
+    
+    # ==================== MÉTHODES EXISTANTES AMÉLIORÉES ====================
     
     def get_q_function(self) -> Union[np.ndarray, Dict[Tuple[int, int], float], None]:
         """
@@ -230,33 +390,20 @@ class BaseAlgorithm(ABC):
     
     def get_training_summary(self) -> Dict[str, Any]:
         """
-        Retourne un résumé des statistiques d'entraînement.
+        AMÉLIORÉE : Retourne un résumé des statistiques d'entraînement.
         
         Returns:
             Dict[str, Any]: Résumé des statistiques
         """
-        if not self.training_stats:
-            return {"message": "No training statistics available"}
-        
-        rewards = [stats.total_reward for stats in self.training_stats]
-        steps = [stats.steps for stats in self.training_stats]
-        
-        return {
-            "algorithm": self.algo_name,
-            "episodes_trained": len(self.training_stats),
-            "avg_reward": np.mean(rewards),
-            "std_reward": np.std(rewards),
-            "min_reward": np.min(rewards),
-            "max_reward": np.max(rewards),
-            "avg_steps": np.mean(steps),
-            "final_episode_reward": rewards[-1],
-            "is_converged": self.is_trained
-        }
+        return self.get_training_results()  # Utilise la nouvelle méthode complète
     
     def evaluate_policy(self, environment, num_episodes: int = 100, 
                        max_steps: int = 1000) -> Dict[str, float]:
         """
-        Évalue la politique apprise sur un environnement.
+        AMÉLIORÉE : Évalue la politique apprise sur un environnement.
+        
+        Cette méthode permet à l'algorithme d'auto-évaluer ses performances,
+        compatible avec l'Agent wrapper.
         
         Args:
             environment: Environnement d'évaluation
@@ -266,11 +413,12 @@ class BaseAlgorithm(ABC):
         Returns:
             Dict[str, float]: Statistiques d'évaluation
         """
-        if not self.is_trained:
+        if not self.is_ready_for_evaluation():
             raise ValueError("Algorithm must be trained before evaluation")
         
         total_rewards = []
         episode_lengths = []
+        success_count = 0
         
         for episode in range(num_episodes):
             state = environment.reset()
@@ -279,14 +427,17 @@ class BaseAlgorithm(ABC):
             
             for step in range(max_steps):
                 # Sélection d'action sans exploration (politique gloutonne)
-                action = self.select_greedy_action(state)
-                next_state, reward, done, _ = environment.step(action)
+                action = self.select_action(state, training=False)
+                next_state, reward, done, info = environment.step(action)
                 
                 episode_reward += reward
                 steps += 1
                 state = next_state
                 
                 if done:
+                    # Vérifie si c'est un succès
+                    if info.get("target_reached", False):
+                        success_count += 1
                     break
             
             total_rewards.append(episode_reward)
@@ -299,19 +450,46 @@ class BaseAlgorithm(ABC):
             "max_reward": np.max(total_rewards),
             "avg_episode_length": np.mean(episode_lengths),
             "std_episode_length": np.std(episode_lengths),
+            "success_rate": success_count / num_episodes,
             "num_episodes": num_episodes
         }
     
+    def _check_convergence(self, window_size: int = 50) -> bool:
+        """
+        AMÉLIORÉE : Vérifie si l'algorithme a convergé.
+        
+        Args:
+            window_size (int): Taille de la fenêtre pour le calcul
+            
+        Returns:
+            bool: True si convergé
+        """
+        if len(self.training_stats) < window_size:
+            return False
+        
+        # Vérifie la convergence sur les métriques disponibles
+        recent_stats = self.training_stats[-window_size:]
+        convergence_metrics = [s.convergence_metric for s in recent_stats 
+                              if s.convergence_metric is not None]
+        
+        if convergence_metrics:
+            avg_convergence = np.mean(convergence_metrics)
+            return avg_convergence < self.convergence_threshold
+        
+        return False
+    
     def reset_training(self):
-        """Remet à zéro l'entraînement de l'algorithme."""
+        """AMÉLIORÉE : Remet à zéro l'entraînement de l'algorithme."""
         self.training_stats = []
         self.is_trained = False
         self.episode_count = 0
+        self.training_start_time = None
+        self.training_end_time = None
         # Les sous-classes peuvent override pour réinitialiser leurs structures
     
     def set_hyperparameters(self, **kwargs):
         """
-        Met à jour les hyperparamètres de l'algorithme.
+        AMÉLIORÉE : Met à jour les hyperparamètres de l'algorithme.
         
         Args:
             **kwargs: Nouveaux hyperparamètres
@@ -319,21 +497,59 @@ class BaseAlgorithm(ABC):
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
+                # Met à jour la config source aussi
+                if hasattr(self, '_source_config'):
+                    self._source_config[key] = value
             else:
                 print(f"Warning: Hyperparameter '{key}' not recognized for {self.algo_name}")
     
     def get_hyperparameters(self) -> Dict[str, Any]:
         """
-        Retourne les hyperparamètres actuels de l'algorithme.
+        AMÉLIORÉE : Retourne les hyperparamètres actuels de l'algorithme.
         
         Returns:
             Dict[str, Any]: Hyperparamètres
         """
         # Hyperparamètres de base - les sous-classes peuvent étendre
-        return {
+        base_params = {
             "gamma": self.gamma,
-            "epsilon": self.epsilon
+            "epsilon": self.epsilon,
+            "convergence_threshold": self.convergence_threshold
         }
+        
+        # Ajoute les hyperparamètres de la configuration source
+        if hasattr(self, '_source_config'):
+            base_params.update(self._source_config)
+        
+        return base_params
+    
+    # ==================== MÉTHODES UTILITAIRES ====================
+    
+    def _start_training_timer(self):
+        """Démarre le chronométrage d'entraînement."""
+        self.training_start_time = time.time()
+    
+    def _end_training_timer(self):
+        """Arrête le chronométrage d'entraînement."""
+        self.training_end_time = time.time()
+    
+    def _validate_environment_compatibility(self, environment):
+        """
+        Valide que l'environnement est compatible avec l'algorithme.
+        
+        Args:
+            environment: Environnement à valider
+            
+        Raises:
+            ValueError: Si incompatible
+        """
+        if self.state_space_size != environment.state_space_size:
+            raise ValueError(f"Incompatibilité d'espace d'états: "
+                           f"algo={self.state_space_size}, env={environment.state_space_size}")
+        
+        if self.action_space_size != environment.action_space_size:
+            raise ValueError(f"Incompatibilité d'espace d'actions: "
+                           f"algo={self.action_space_size}, env={environment.action_space_size}")
     
     def __str__(self) -> str:
         """Représentation textuelle de l'algorithme."""

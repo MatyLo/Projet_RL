@@ -1,28 +1,34 @@
 """
-Q-Learning Algorithm - Algorithme d'apprentissage par renforcement de type Temporal Difference.
+Q-Learning Algorithm - Implémentation avec Approche Hybride
 
-Q-Learning est un algorithme off-policy qui apprend la fonction de valeur action-état optimale Q*(s,a)
-directement sans connaître la politique suivie.
+Cette version supporte :
+1. Configuration via JSON avec from_config()
+2. Entraînement autonome (style professeur)
+3. Compatible avec Agent wrapper pour post-entraînement
+4. Métriques de convergence avancées
 """
 
 import numpy as np
 import pickle
 import json
+import time
 from typing import Dict, List, Tuple, Any, Optional, Union
 import sys
 import os
 
-# Ajouter le chemin vers la classe de base
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from src.rl_algorithms.base_algorithm import BaseAlgorithm, TrainingStats
 
 
 class QLearning(BaseAlgorithm):
     """
-    Implémentation de l'algorithme Q-Learning.
+    Implémentation Q-Learning avec architecture hybride.
     
     Q-Learning utilise la mise à jour:
     Q(s,a) ← Q(s,a) + α[r + γ max_a' Q(s',a') - Q(s,a)]
+    
+    Nouvelle Architecture :
+    - Phase 1 : Configuration JSON -> Entraînement autonome
+    - Phase 2 : Compatible Agent wrapper -> Évaluation/Démonstration
     """
     
     def __init__(self, 
@@ -33,7 +39,9 @@ class QLearning(BaseAlgorithm):
                  epsilon: float = 0.1,
                  epsilon_decay: float = 0.995,
                  epsilon_min: float = 0.01,
-                 initial_q_value: float = 0.0):
+                 initial_q_value: float = 0.0,
+                 convergence_threshold: float = 1e-4,
+                 **kwargs):
         """
         Initialise l'algorithme Q-Learning.
         
@@ -46,13 +54,17 @@ class QLearning(BaseAlgorithm):
             epsilon_decay (float): Facteur de décroissance d'epsilon
             epsilon_min (float): Valeur minimale d'epsilon
             initial_q_value (float): Valeur initiale des Q-values
+            convergence_threshold (float): Seuil de convergence
+            **kwargs: Paramètres supplémentaires
         """
         super().__init__(
             algo_name="Q-Learning",
             state_space_size=state_space_size,
             action_space_size=action_space_size,
             gamma=gamma,
-            epsilon=epsilon
+            epsilon=epsilon,
+            convergence_threshold=convergence_threshold,
+            **kwargs
         )
         
         # Hyperparamètres spécifiques à Q-Learning
@@ -60,6 +72,7 @@ class QLearning(BaseAlgorithm):
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
         self.initial_q_value = initial_q_value
+        self.initial_epsilon = epsilon  # Sauvegarde valeur initiale
         
         # Initialisation de la Q-table
         self.q_function = np.full(
@@ -72,10 +85,65 @@ class QLearning(BaseAlgorithm):
         self.policy = None
         self.value_function = None
         
-        # Métriques de convergence
+        # Métriques de convergence spécifiques
         self.q_value_changes = []
-        self.convergence_threshold = 1e-4
+    
+    @classmethod
+    def from_config(cls, config: Dict[str, Any], environment) -> 'QLearning':
+        """
+        NOUVELLE : Crée un algorithme Q-Learning depuis une configuration JSON.
         
+        Cette méthode implémente l'approche hybride : configuration JSON -> algorithme autonome.
+        
+        Args:
+            config (Dict[str, Any]): Configuration de l'algorithme
+            environment: Environnement d'entraînement
+            
+        Returns:
+            QLearning: Instance configurée de Q-Learning
+            
+        Raises:
+            ValueError: Si la configuration est invalide
+        """
+        # Validation de la configuration
+        required_keys = ['learning_rate', 'gamma', 'epsilon']
+        for key in required_keys:
+            if key not in config:
+                raise ValueError(f"Paramètre manquant dans la configuration: {key}")
+        
+        # Création de l'instance avec la configuration
+        return cls(
+            state_space_size=environment.state_space_size,
+            action_space_size=environment.action_space_size,
+            learning_rate=config.get('learning_rate', 0.1),
+            gamma=config.get('gamma', 0.9),
+            epsilon=config.get('epsilon', 0.1),
+            epsilon_decay=config.get('epsilon_decay', 0.995),
+            epsilon_min=config.get('epsilon_min', 0.01),
+            initial_q_value=config.get('initial_q_value', 0.0),
+            convergence_threshold=config.get('convergence_threshold', 1e-4),
+            **config  # Tous les autres paramètres
+        )
+    
+    def to_config(self) -> Dict[str, Any]:
+        """
+        NOUVELLE : Exporte la configuration actuelle de l'algorithme.
+        
+        Returns:
+            Dict[str, Any]: Configuration de l'algorithme
+        """
+        base_config = super().to_config()
+        q_learning_config = {
+            'algorithm_type': 'q_learning',
+            'learning_rate': self.learning_rate,
+            'epsilon_decay': self.epsilon_decay,
+            'epsilon_min': self.epsilon_min,
+            'initial_q_value': self.initial_q_value,
+            'initial_epsilon': self.initial_epsilon
+        }
+        base_config.update(q_learning_config)
+        return base_config
+    
     @property
     def algorithm_type(self) -> str:
         """Retourne le type d'algorithme."""
@@ -91,7 +159,10 @@ class QLearning(BaseAlgorithm):
               convergence_check_interval: int = 100,
               **kwargs) -> Dict[str, Any]:
         """
-        Entraîne l'algorithme Q-Learning sur un environnement.
+        MODIFIÉE : Entraîne l'algorithme Q-Learning de manière autonome.
+        
+        Implémente l'entraînement autonome pour l'approche hybride.
+        L'algorithme gère tout lui-même sans dépendre d'un Agent.
         
         Args:
             environment: Environnement d'entraînement
@@ -103,16 +174,26 @@ class QLearning(BaseAlgorithm):
         Returns:
             Dict[str, Any]: Statistiques d'entraînement et résultats
         """
+        # Validation de compatibilité
+        self._validate_environment_compatibility(environment)
+        
         if verbose:
-            print(f"Démarrage de l'entraînement Q-Learning pour {num_episodes} épisodes")
+            print(f"\n{'='*60}")
+            print(f"ENTRAÎNEMENT AUTONOME Q-LEARNING")
+            print(f"{'='*60}")
+            print(f"Épisodes: {num_episodes}")
             print(f"Paramètres: α={self.learning_rate}, γ={self.gamma}, ε={self.epsilon}")
+            print(f"Environnement: {environment.env_name}")
+            print(f"{'='*60}\n")
+        
+        # Démarrage du chronométrage
+        self._start_training_timer()
         
         # Réinitialisation pour un nouvel entraînement
-        self.training_stats = []
-        self.q_value_changes = []
+        self.reset_training()
         
         for episode in range(num_episodes):
-            episode_reward, episode_steps, q_change = self._run_episode(environment)
+            episode_reward, episode_steps, q_change = self._run_training_episode(environment)
             
             # Décroissance d'epsilon
             if self.epsilon > self.epsilon_min:
@@ -121,14 +202,17 @@ class QLearning(BaseAlgorithm):
             
             # Enregistrement des statistiques
             self.q_value_changes.append(q_change)
-            convergence_metric = q_change if q_change is not None else 0.0
             
             self.update_training_stats(
                 episode=episode + 1,
                 total_reward=episode_reward,
                 steps=episode_steps,
-                convergence_metric=convergence_metric,
-                additional_metrics={"epsilon": self.epsilon, "q_change": q_change}
+                convergence_metric=q_change,
+                additional_metrics={
+                    "epsilon": self.epsilon, 
+                    "q_change": q_change,
+                    "avg_q_value": np.mean(self.q_function)
+                }
             )
             
             # Affichage périodique
@@ -143,31 +227,37 @@ class QLearning(BaseAlgorithm):
             if (episode + 1) % convergence_check_interval == 0:
                 if self._check_convergence():
                     if verbose:
-                        print(f"Convergence détectée à l'épisode {episode + 1}")
+                        print(f"✅ Convergence détectée à l'épisode {episode + 1}")
                     break
         
-        # Calcul des politiques finales
+        # Finalisation de l'entraînement
+        self._end_training_timer()
         self._compute_final_policies()
         self.is_trained = True
         
-        if verbose:
-            summary = self.get_training_summary()
-            print(f"\nEntraînement terminé:")
-            print(f"- Récompense moyenne: {summary['avg_reward']:.2f}")
-            print(f"- Récompense finale: {summary['final_episode_reward']:.2f}")
-            print(f"- Epsilon final: {self.epsilon:.3f}")
+        # Résultats d'entraînement
+        training_results = self.get_training_results()
         
-        return self.get_training_summary()
+        if verbose:
+            print(f"\n{'='*60}")
+            print(f"ENTRAÎNEMENT TERMINÉ")
+            print(f"Temps: {training_results['training_time']:.2f}s")
+            print(f"Récompense moyenne: {training_results['avg_reward']:.2f}")
+            print(f"Récompense finale: {training_results['final_episode_reward']:.2f}")
+            print(f"Convergé: {training_results['converged']}")
+            print(f"{'='*60}\n")
+        
+        return training_results
     
-    def _run_episode(self, environment) -> Tuple[float, int, Optional[float]]:
+    def _run_training_episode(self, environment) -> Tuple[float, int, float]:
         """
-        Exécute un épisode d'entraînement.
+        Exécute un épisode d'entraînement autonome.
         
         Args:
             environment: Environnement d'entraînement
             
         Returns:
-            Tuple[float, int, Optional[float]]: Récompense totale, nombre d'étapes, changement Q-values
+            Tuple[float, int, float]: Récompense totale, nombre d'étapes, changement Q-values
         """
         state = environment.reset()
         total_reward = 0.0
@@ -227,7 +317,10 @@ class QLearning(BaseAlgorithm):
     
     def select_action(self, state: int, training: bool = False, **kwargs) -> int:
         """
-        Sélectionne une action pour un état donné.
+        MODIFIÉE : Sélectionne une action pour un état donné.
+        
+        Compatible avec l'Agent wrapper qui peut spécifier training=False
+        pour l'évaluation post-entraînement.
         
         Args:
             state (int): État actuel
@@ -283,28 +376,9 @@ class QLearning(BaseAlgorithm):
         # Fonction de valeur: maximum des Q-values pour chaque état
         self.value_function = np.max(self.q_function, axis=1)
     
-    def _check_convergence(self, window_size: int = 50) -> bool:
-        """
-        Vérifie si l'algorithme a convergé.
-        
-        Args:
-            window_size (int): Taille de la fenêtre pour le calcul de convergence
-            
-        Returns:
-            bool: True si convergé
-        """
-        if len(self.q_value_changes) < window_size:
-            return False
-        
-        # Moyenne des changements récents
-        recent_changes = self.q_value_changes[-window_size:]
-        avg_change = np.mean(recent_changes)
-        
-        return avg_change < self.convergence_threshold
-    
     def save_model(self, filepath: str) -> bool:
         """
-        Sauvegarde le modèle Q-Learning.
+        AMÉLIORÉE : Sauvegarde le modèle Q-Learning avec métadonnées.
         
         Args:
             filepath (str): Chemin de sauvegarde (sans extension)
@@ -319,10 +393,10 @@ class QLearning(BaseAlgorithm):
                 'policy': self.policy.tolist() if self.policy is not None else None,
                 'value_function': self.value_function.tolist() if self.value_function is not None else None,
                 'hyperparameters': self.get_hyperparameters(),
-                'state_space_size': self.state_space_size,
-                'action_space_size': self.action_space_size,
-                'is_trained': self.is_trained,
-                'episode_count': self.episode_count
+                'algorithm_info': self.get_algorithm_info(),
+                'training_results': self.get_training_results(),
+                'config_export': self.to_config(),
+                'q_value_changes': self.q_value_changes
             }
             
             # Sauvegarde JSON pour lisibilité
@@ -336,12 +410,12 @@ class QLearning(BaseAlgorithm):
             return True
             
         except Exception as e:
-            print(f"Erreur lors de la sauvegarde: {e}")
+            print(f"❌ Erreur lors de la sauvegarde: {e}")
             return False
     
     def load_model(self, filepath: str) -> bool:
         """
-        Charge un modèle Q-Learning pré-entraîné.
+        AMÉLIORÉE : Charge un modèle Q-Learning pré-entraîné.
         
         Args:
             filepath (str): Chemin du modèle (sans extension)
@@ -358,8 +432,12 @@ class QLearning(BaseAlgorithm):
                 self.q_function = np.array(model_data['q_function'])
                 self.policy = np.array(model_data['policy']) if model_data['policy'] else None
                 self.value_function = np.array(model_data['value_function']) if model_data['value_function'] else None
-                self.is_trained = model_data['is_trained']
-                self.episode_count = model_data['episode_count']
+                self.is_trained = model_data['algorithm_info']['is_trained']
+                self.episode_count = model_data['algorithm_info']['episode_count']
+                
+                # Restaure les métriques de convergence si disponibles
+                if 'q_value_changes' in model_data:
+                    self.q_value_changes = model_data['q_value_changes']
                 
                 # Restaure les hyperparamètres
                 hyperparams = model_data['hyperparameters']
@@ -377,16 +455,17 @@ class QLearning(BaseAlgorithm):
                 self.is_trained = loaded_model.is_trained
                 self.episode_count = loaded_model.episode_count
                 self.training_stats = loaded_model.training_stats
+                self.q_value_changes = getattr(loaded_model, 'q_value_changes', [])
             
             return True
             
         except Exception as e:
-            print(f"Erreur lors du chargement: {e}")
+            print(f"❌ Erreur lors du chargement: {e}")
             return False
     
     def get_hyperparameters(self) -> Dict[str, Any]:
         """
-        Retourne les hyperparamètres de Q-Learning.
+        AMÉLIORÉE : Retourne les hyperparamètres de Q-Learning.
         
         Returns:
             Dict[str, Any]: Hyperparamètres actuels
@@ -397,13 +476,13 @@ class QLearning(BaseAlgorithm):
             "epsilon_decay": self.epsilon_decay,
             "epsilon_min": self.epsilon_min,
             "initial_q_value": self.initial_q_value,
-            "convergence_threshold": self.convergence_threshold
+            "initial_epsilon": self.initial_epsilon
         }
         return {**base_params, **q_params}
     
     def set_hyperparameters(self, **kwargs):
         """
-        Met à jour les hyperparamètres de Q-Learning.
+        AMÉLIORÉE : Met à jour les hyperparamètres de Q-Learning.
         
         Args:
             **kwargs: Nouveaux hyperparamètres
@@ -415,11 +494,15 @@ class QLearning(BaseAlgorithm):
             self.epsilon_decay = kwargs['epsilon_decay']
         if 'epsilon_min' in kwargs:
             self.epsilon_min = kwargs['epsilon_min']
-        if 'convergence_threshold' in kwargs:
-            self.convergence_threshold = kwargs['convergence_threshold']
+        if 'initial_q_value' in kwargs:
+            self.initial_q_value = kwargs['initial_q_value']
+        if 'initial_epsilon' in kwargs:
+            self.initial_epsilon = kwargs['initial_epsilon']
         
         # Appel de la méthode parent pour les hyperparamètres de base
         super().set_hyperparameters(**kwargs)
+    
+    # ==================== MÉTHODES SPÉCIFIQUES Q-LEARNING ====================
     
     def get_action_probabilities(self, state: int, temperature: float = 1.0) -> np.ndarray:
         """
@@ -450,7 +533,7 @@ class QLearning(BaseAlgorithm):
         return self.q_function[state, action]
     
     def reset_training(self):
-        """Remet à zéro l'entraînement de Q-Learning."""
+        """AMÉLIORÉE : Remet à zéro l'entraînement de Q-Learning."""
         super().reset_training()
         
         # Réinitialise la Q-table
@@ -465,15 +548,14 @@ class QLearning(BaseAlgorithm):
         self.value_function = None
         
         # Remet epsilon à sa valeur initiale
-        # Note: la valeur initiale doit être stockée lors de l'initialisation
-        self.epsilon = getattr(self, 'initial_epsilon', 0.1)
+        self.epsilon = self.initial_epsilon
         
-        # Réinitialise les métriques
+        # Réinitialise les métriques spécifiques
         self.q_value_changes = []
     
     def get_convergence_info(self) -> Dict[str, Any]:
         """
-        Retourne des informations sur la convergence de l'algorithme.
+        NOUVELLE : Retourne des informations sur la convergence de l'algorithme.
         
         Returns:
             Dict[str, Any]: Informations de convergence
@@ -488,12 +570,13 @@ class QLearning(BaseAlgorithm):
             "max_q_change": max(self.q_value_changes),
             "avg_q_change": np.mean(self.q_value_changes),
             "converged": self._check_convergence(),
-            "convergence_threshold": self.convergence_threshold
+            "convergence_threshold": self.convergence_threshold,
+            "q_change_history": self.q_value_changes[-10:]  # Derniers 10 valeurs
         }
     
     def visualize_q_table(self, precision: int = 3) -> str:
         """
-        Retourne une représentation textuelle de la Q-table.
+        NOUVELLE : Retourne une représentation textuelle de la Q-table.
         
         Args:
             precision (int): Nombre de décimales à afficher
@@ -502,14 +585,16 @@ class QLearning(BaseAlgorithm):
             str: Q-table formatée
         """
         if not self.is_trained:
-            return "Algorithme non entraîné - Q-table non disponible"
+            return "❌ Algorithme non entraîné - Q-table non disponible"
         
-        output = "\n=== Q-Table ===\n"
+        output = "\n" + "="*60 + "\n"
+        output += "Q-TABLE APPRISE\n"
+        output += "="*60 + "\n"
         output += f"{'État':<6}"
         for action in range(self.action_space_size):
             output += f"Action{action:<7}"
-        output += f"{'Politique':<10}\n"
-        output += "-" * (10 + self.action_space_size * 12) + "\n"
+        output += f"{'Politique':<10}{'Valeur':<10}\n"
+        output += "-" * 60 + "\n"
         
         for state in range(self.state_space_size):
             output += f"{state:<6}"
@@ -518,14 +603,16 @@ class QLearning(BaseAlgorithm):
                 output += f"{q_val:<11.{precision}f} "
             
             best_action = self.policy[state] if self.policy is not None else np.argmax(self.q_function[state])
-            output += f"{best_action:<10}\n"
+            state_value = self.value_function[state] if self.value_function is not None else np.max(self.q_function[state])
+            output += f"{best_action:<10}{state_value:<10.{precision}f}\n"
         
+        output += "="*60 + "\n"
         return output
     
     def compare_with_optimal(self, optimal_policy: Dict[int, int], 
                            optimal_values: Dict[int, float] = None) -> Dict[str, Any]:
         """
-        Compare la politique apprise avec une politique optimale.
+        NOUVELLE : Compare la politique apprise avec une politique optimale.
         
         Args:
             optimal_policy (Dict[int, int]): Politique optimale de référence
@@ -534,8 +621,8 @@ class QLearning(BaseAlgorithm):
         Returns:
             Dict[str, Any]: Résultats de la comparaison
         """
-        if not self.is_trained:
-            return {"error": "Algorithme non entraîné"}
+        if not self.is_ready_for_evaluation():
+            return {"error": "Algorithme non entraîné ou non prêt"}
         
         policy = self.get_policy()
         
@@ -546,6 +633,7 @@ class QLearning(BaseAlgorithm):
         policy_accuracy = correct_actions / total_states
         
         results = {
+            "algorithm": self.algo_name,
             "policy_accuracy": policy_accuracy,
             "correct_actions": correct_actions,
             "total_states": total_states,
@@ -569,11 +657,90 @@ class QLearning(BaseAlgorithm):
             })
         
         return results
+    
+    def get_detailed_statistics(self) -> Dict[str, Any]:
+        """
+        NOUVELLE : Retourne des statistiques détaillées pour l'analyse.
+        
+        Returns:
+            Dict[str, Any]: Statistiques complètes
+        """
+        if not self.is_trained:
+            return {"message": "Algorithme non entraîné"}
+        
+        stats = {
+            "algorithm_info": self.get_algorithm_info(),
+            "training_results": self.get_training_results(),
+            "convergence_info": self.get_convergence_info(),
+            "hyperparameters": self.get_hyperparameters(),
+            "q_table_stats": {
+                "shape": self.q_function.shape,
+                "min_q_value": float(np.min(self.q_function)),
+                "max_q_value": float(np.max(self.q_function)),
+                "mean_q_value": float(np.mean(self.q_function)),
+                "std_q_value": float(np.std(self.q_function)),
+                "zero_q_values": int(np.sum(self.q_function == 0))
+            }
+        }
+        
+        return stats
 
 
-# Fonctions utilitaires pour créer des configurations pré-définies
+# ==================== FONCTIONS UTILITAIRES ====================
+
+def create_qlearning_from_config(config_path: str, environment) -> QLearning:
+    """
+    NOUVELLE : Fonction utilitaire pour créer Q-Learning depuis un fichier de config.
+    
+    Args:
+        config_path (str): Chemin vers le fichier de configuration
+        environment: Environnement d'entraînement
+        
+    Returns:
+        QLearning: Instance configurée
+    """
+    from utils.config_loader import load_config
+    
+    config = load_config(config_path)
+    q_learning_config = config['algorithms']['q_learning']
+    
+    return QLearning.from_config(q_learning_config, environment)
+
+
+def quick_train_qlearning(environment, config_name: str = "q_learning", 
+                         config_path: str = None, verbose: bool = True) -> QLearning:
+    """
+    NOUVELLE : Fonction utilitaire pour entraînement rapide de Q-Learning.
+    
+    Args:
+        environment: Environnement d'entraînement
+        config_name (str): Nom de la configuration dans le fichier JSON
+        config_path (str): Chemin vers le fichier de configuration
+        verbose (bool): Affichage des détails
+        
+    Returns:
+        QLearning: Algorithme entraîné
+    """
+    from utils.config_loader import load_config, create_default_config
+    
+    if config_path:
+        config = load_config(config_path)
+    else:
+        # Configuration par défaut
+        config = create_default_config("lineworld", "q_learning")
+    
+    # Création et entraînement
+    algorithm = QLearning.from_config(config['algorithms'][config_name], environment)
+    num_episodes = config['algorithms'][config_name].get('num_episodes', 1000)
+    
+    algorithm.train(environment, num_episodes=num_episodes, verbose=verbose)
+    
+    return algorithm
+
+
+# Fonctions de compatibilité avec l'ancienne API
 def create_standard_qlearning(state_space_size: int, action_space_size: int) -> QLearning:
-    """Crée un Q-Learning avec paramètres standards."""
+    """Fonction de compatibilité : Crée un Q-Learning avec paramètres standards."""
     return QLearning(
         state_space_size=state_space_size,
         action_space_size=action_space_size,
@@ -585,7 +752,7 @@ def create_standard_qlearning(state_space_size: int, action_space_size: int) -> 
 
 
 def create_fast_learning_qlearning(state_space_size: int, action_space_size: int) -> QLearning:
-    """Crée un Q-Learning pour apprentissage rapide."""
+    """Fonction de compatibilité : Crée un Q-Learning pour apprentissage rapide."""
     return QLearning(
         state_space_size=state_space_size,
         action_space_size=action_space_size,
@@ -597,38 +764,42 @@ def create_fast_learning_qlearning(state_space_size: int, action_space_size: int
     )
 
 
-def create_conservative_qlearning(state_space_size: int, action_space_size: int) -> QLearning:
-    """Crée un Q-Learning conservateur pour environnements complexes."""
-    return QLearning(
-        state_space_size=state_space_size,
-        action_space_size=action_space_size,
-        learning_rate=0.05,
-        gamma=0.99,
-        epsilon=0.05,
-        epsilon_decay=0.9995,
-        epsilon_min=0.001
-    )
-
-
 if __name__ == "__main__":
-    # Test rapide de Q-Learning
-    print("Test de Q-Learning")
+    # Test de la version hybride
+    print("🧪 Test de Q-Learning avec Architecture Hybride")
     
-    # Création d'un algorithme simple
+    # Test 1: Création standard
+    print("\n1. Test création standard:")
     q_agent = create_standard_qlearning(state_space_size=5, action_space_size=2)
-    print(f"Q-Learning créé: {q_agent}")
+    print(f"✅ {q_agent}")
     
-    # Affichage des hyperparamètres
-    print("Hyperparamètres:")
-    for key, value in q_agent.get_hyperparameters().items():
-        print(f"  {key}: {value}")
+    # Test 2: Configuration JSON (simulée)
+    print("\n2. Test configuration JSON:")
+    test_config = {
+        'learning_rate': 0.2,
+        'gamma': 0.95,
+        'epsilon': 0.15,
+        'num_episodes': 500
+    }
     
-    # Test de sélection d'action
-    test_state = 0
-    print(f"\nTest de sélection d'action pour l'état {test_state}:")
-    for i in range(5):
-        action = q_agent.select_action(test_state, training=True)
-        print(f"  Action {i+1}: {action}")
+    # Simulation d'un environnement simple
+    class MockEnvironment:
+        def __init__(self):
+            self.state_space_size = 5
+            self.action_space_size = 2
+            self.env_name = "MockEnv"
+        
+        def reset(self): return 0
+        def step(self, action): return 1, 0.1, False, {}
     
-    print("\nQ-table initiale:")
-    print(q_agent.visualize_q_table())
+    mock_env = MockEnvironment()
+    q_agent_config = QLearning.from_config(test_config, mock_env)
+    print(f"✅ {q_agent_config}")
+    print(f"Hyperparamètres: {q_agent_config.get_hyperparameters()}")
+    
+    # Test 3: Export de configuration
+    print("\n3. Test export configuration:")
+    exported_config = q_agent_config.to_config()
+    print(f"✅ Configuration exportée: {len(exported_config)} paramètres")
+    
+    print("\n🎉 Tests de l'architecture hybride réussis !")

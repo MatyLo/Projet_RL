@@ -2,39 +2,18 @@
 """
 Script de test du workflow de base - Line World + Q-Learning
 
-Ce script valide que le workflow complet fonctionne :
-1. Création d'un environnement Line World
-2. Création d'un algorithme Q-Learning  
-3. Création d'un Agent
-4. Entraînement
-5. Évaluation
-6. Démonstration
-7. Sauvegarde/Chargement
-
 Usage:
     python demo_scripts/test_basic_workflow.py
 
 Placement: demo_scripts/test_basic_workflow.py
 """
 
-import sys
-import os
 import numpy as np
 
-# Ajout des chemins pour imports simples
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir)
-
-# Imports simples
-try:
-    from src.rl_environments.line_world import LineWorld, create_simple_lineworld
-    from src.rl_algorithms.temporal_difference.q_learning import QLearning, create_standard_qlearning
-    from core.agent import Agent, quick_train_and_evaluate
-except ImportError as e:
-    print(f"❌ Erreur d'import: {e}")
-    print("💡 Vérifiez que vous lancez depuis la racine du projet:")
-    print("   python demo_scripts/test_basic_workflow.py")
-    sys.exit(1)
+# Imports ultra-simples
+from src.rl_environments.line_world import LineWorld, create_simple_lineworld
+from src.rl_algorithms.temporal_difference.q_learning import QLearning, create_standard_qlearning
+from core.agent import Agent, quick_train_and_evaluate
 
 
 def test_environment_creation():
@@ -354,3 +333,4 @@ if __name__ == "__main__":
         print(f"\n\n💥 Erreur inattendue: {e}")
         import traceback
         traceback.print_exc()
+        
