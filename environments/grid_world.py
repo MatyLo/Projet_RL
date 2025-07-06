@@ -1,6 +1,7 @@
 import numpy as np
+from .base_environment import BaseEnvironment
 
-class GridWorld:
+class GridWorld(BaseEnvironment):
     """
     Environnement GridWorld 4x4 classique.
     L'agent commence en haut à gauche (0,0) et doit atteindre le coin en bas à droite (3,3).
@@ -18,6 +19,7 @@ class GridWorld:
         self.T = [self._to_state(goal_pos)]
         self.state = self._to_state(start_pos)
         self.p = self._build_transition_matrix()
+        super().__init__()
 
     def _to_state(self, pos):
         return pos[0] * self.width + pos[1]
@@ -81,4 +83,20 @@ class GridWorld:
         print()
 
     def get_transition_matrix(self):
-        return self.p 
+        return self.p
+    
+    def get_state_space(self):
+        """Retourne l'espace des états."""
+        return self.S
+    
+    def get_action_space(self):
+        """Retourne l'espace des actions."""
+        return self.A
+    
+    def get_rewards(self):
+        """Retourne la liste des récompenses possibles."""
+        return self.R
+    
+    def get_terminal_states(self):
+        """Retourne la liste des états terminaux."""
+        return self.T 

@@ -11,7 +11,7 @@ class MontyHall:
     """
     def __init__(self):
         self.S = [0, 1, 2, 3, 4]  # 0: choix initial, 1: après retrait, 2: terminal win, 3: terminal lose, 4: terminal (abandon)
-        self.A = [0, 1]  # 0: rester, 1: changer (après retrait)
+        self.A = [0, 1, 2]  # 0,1,2: choix de porte, 0: rester, 1: changer (après retrait)
         self.R = [0.0, 1.0]
         self.T = [2, 3, 4]
         self.state = 0
@@ -78,4 +78,42 @@ class MontyHall:
         return self.A
 
     def get_terminal_states(self):
-        return self.T 
+        return self.T
+    
+    def get_rewards(self):
+        """Retourne l'espace des récompenses."""
+        return self.R
+    
+    def get_transition_matrix(self):
+        """Retourne la matrice de transition P(s,a,s',r)."""
+        # Créer une matrice de transition 4D: P(s,a,s',r)
+        n_states = len(self.S)
+        n_actions = len(self.A)
+        n_rewards = len(self.R)
+        
+        P = np.zeros((n_states, n_actions, n_states, n_rewards))
+        
+        # Remplir la matrice de transition selon les règles du jeu
+        for s in self.S:
+            for a in self.A:
+                if s == 0:  # État initial - choix de porte
+                    if a in [0, 1, 2]:  # Choix valide de porte
+                        # Toujours passer à l'état 1 après choix
+                        P[s, a, 1, 0] = 1.0  # Récompense 0.0
+                elif s == 1:  # État après révélation
+                    if a == 0:  # Rester (action 0)
+                        # Déterminer si on gagne ou perd
+                        # Pour simplifier, on suppose une probabilité 1/3 de gagner
+                        P[s, a, 2, 1] = 1/3  # Gagner (récompense 1.0)
+                        P[s, a, 3, 0] = 2/3  # Perdre (récompense 0.0)
+                    elif a == 1:  # Changer (action 1)
+                        # Avec changement, probabilité 2/3 de gagner
+                        P[s, a, 2, 1] = 2/3  # Gagner (récompense 1.0)
+                        P[s, a, 3, 0] = 1/3  # Perdre (récompense 0.0)
+                    elif a == 2:  # Action 2 (non utilisée dans cet état)
+                        # Rester dans l'état actuel
+                        P[s, a, s, 0] = 1.0
+                else:  # États terminaux
+                    P[s, a, s, 0] = 1.0  # Rester dans l'état terminal
+        
+        return P 
