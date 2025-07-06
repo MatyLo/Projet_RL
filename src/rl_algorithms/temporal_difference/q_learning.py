@@ -91,7 +91,7 @@ class QLearning(BaseAlgorithm):
     @classmethod
     def from_config(cls, config: Dict[str, Any], environment) -> 'QLearning':
         """
-        NOUVELLE : Crée un algorithme Q-Learning depuis une configuration JSON.
+         Crée un algorithme Q-Learning depuis une configuration JSON.
         
         Cette méthode implémente l'approche hybride : configuration JSON -> algorithme autonome.
         
@@ -121,13 +121,12 @@ class QLearning(BaseAlgorithm):
             epsilon_decay=config.get('epsilon_decay', 0.995),
             epsilon_min=config.get('epsilon_min', 0.01),
             initial_q_value=config.get('initial_q_value', 0.0),
-            convergence_threshold=config.get('convergence_threshold', 1e-4),
-            **config  # Tous les autres paramètres
+            convergence_threshold=config.get('convergence_threshold', 1e-4)
         )
     
     def to_config(self) -> Dict[str, Any]:
         """
-        NOUVELLE : Exporte la configuration actuelle de l'algorithme.
+        Exporte la configuration actuelle de l'algorithme.
         
         Returns:
             Dict[str, Any]: Configuration de l'algorithme
@@ -159,7 +158,7 @@ class QLearning(BaseAlgorithm):
               convergence_check_interval: int = 100,
               **kwargs) -> Dict[str, Any]:
         """
-        MODIFIÉE : Entraîne l'algorithme Q-Learning de manière autonome.
+        Entraîne l'algorithme Q-Learning de manière autonome.
         
         Implémente l'entraînement autonome pour l'approche hybride.
         L'algorithme gère tout lui-même sans dépendre d'un Agent.

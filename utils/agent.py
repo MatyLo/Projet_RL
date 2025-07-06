@@ -4,6 +4,11 @@ Agent Hybride - Wrapper post-entraînement pour algorithmes RL.
 Cette classe encapsule un algorithme entraîné et fournit des fonctionnalités
 d'évaluation, de démonstration et de comparaison pour la phase post-entraînement.
 
+Architecture Hybride :
+- Phase 1 : Algorithmes autonomes avec configuration JSON
+- Phase 2 : Agent wrapper pour évaluation/démonstration/comparaison
+
+Placement: utils/agent.py
 """
 
 import numpy as np

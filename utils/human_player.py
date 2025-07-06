@@ -4,12 +4,21 @@ Mode Agent Humain - Interface pour qu'un humain puisse jouer sur les environneme
 Cette classe permet à un utilisateur humain de jouer manuellement sur les environnements
 pour tester les règles et comprendre la dynamique du jeu.
 
+Support PyGame pour interface graphique interactive.
+
 Placement: utils/human_player.py
 """
 
 import sys
 from typing import Dict, List, Any, Optional
 import time
+
+try:
+    import pygame
+    PYGAME_AVAILABLE = True
+except ImportError:
+    PYGAME_AVAILABLE = False
+    print("⚠️ PyGame non disponible. Mode console uniquement.")
 
 from src.rl_environments.base_environment import BaseEnvironment
 
@@ -20,6 +29,8 @@ class HumanPlayer:
     
     Cette classe fournit une interface pour qu'un utilisateur puisse
     interagir manuellement avec les environnements d'apprentissage par renforcement.
+    
+    Supporte les interfaces console et PyGame.
     """
     
     def __init__(self, environment: BaseEnvironment, player_name: str = "Human"):
@@ -36,10 +47,17 @@ class HumanPlayer:
         self.total_games = 0
         self.total_wins = 0
         
+        # Configuration PyGame
+        self.pygame_initialized = False
+        self.screen = None
+        self.clock = None
+        self.font = None
+        
         print(f"🎮 Joueur humain initialisé: {player_name}")
         print(f"Environnement: {environment.env_name}")
     
     def play_episode(self, 
+                    interface_mode: str = "pygame",
                     show_instructions: bool = True,
                     show_rewards: bool = True,
                     show_q_values: bool = False,
@@ -48,6 +66,7 @@ class HumanPlayer:
         Lance un épisode de jeu humain.
         
         Args:
+            interface_mode (str): "pygame" ou "console"
             show_instructions (bool): Afficher les instructions
             show_rewards (bool): Afficher les récompenses
             show_q_values (bool): Afficher les Q-values d'un algorithme entraîné
@@ -58,16 +77,26 @@ class HumanPlayer:
         """
         print(f"\n🎯 NOUVEAU JEU - {self.player_name}")
         print(f"Environnement: {self.environment.env_name}")
+        print(f"Interface: {interface_mode}")
         print("=" * 50)
         
         if show_instructions:
             self._show_instructions()
         
+        # Choix de l'interface
+        if interface_mode == "pygame" and PYGAME_AVAILABLE:
+            return self._play_episode_pygame(show_rewards, show_q_values, trained_algorithm)
+        else:
+            return self._play_episode_console(show_rewards, show_q_values, trained_algorithm)
+    
+    def _play_episode_console(self, show_rewards: bool, show_q_values: bool, trained_algorithm) -> Dict[str, Any]:
+        """Lance un épisode en mode console."""
         # Initialisation de l'épisode
         state = self.environment.reset()
         episode_data = {
             "player": self.player_name,
             "environment": self.environment.env_name,
+            "interface": "console",
             "steps": [],
             "total_reward": 0.0,
             "success": False,
@@ -86,7 +115,7 @@ class HumanPlayer:
         for step in range(max_steps):
             # Obtenir l'action du joueur humain
             try:
-                action = self._get_human_action(state)
+                action = self._get_human_action_console(state)
             except KeyboardInterrupt:
                 print("\n❌ Jeu interrompu par le joueur")
                 break
@@ -148,19 +177,309 @@ class HumanPlayer:
                     print("🏁 Épisode terminé.")
                 break
         
-        # Résumé de l'épisode
-        self.total_games += 1
-        self.game_history.append(episode_data)
-        
-        print(f"\n📊 RÉSUMÉ DE L'ÉPISODE:")
-        print(f"Nombre d'étapes: {episode_data['num_steps']}")
-        print(f"Récompense totale: {episode_data['total_reward']:.2f}")
-        print(f"Succès: {'✅' if episode_data['success'] else '❌'}")
-        print(f"Statistiques globales: {self.total_wins}/{self.total_games} victoires ({self.total_wins/self.total_games*100:.1f}%)")
-        
-        return episode_data
+        return self._finalize_episode(episode_data)
     
-    def _get_human_action(self, state: int) -> Optional[int]:
+    def _play_episode_pygame(self, show_rewards: bool, show_q_values: bool, trained_algorithm) -> Dict[str, Any]:
+        """Lance un épisode en mode PyGame."""
+        if not self._initialize_pygame():
+            print("❌ Impossible d'initialiser PyGame, utilisation du mode console")
+            return self._play_episode_console(show_rewards, show_q_values, trained_algorithm)
+        
+        # Initialisation de l'épisode
+        state = self.environment.reset()
+        episode_data = {
+            "player": self.player_name,
+            "environment": self.environment.env_name,
+            "interface": "pygame",
+            "steps": [],
+            "total_reward": 0.0,
+            "success": False,
+            "num_steps": 0
+        }
+        
+        running = True
+        max_steps = getattr(self.environment, 'max_steps', 1000)
+        
+        while running and episode_data["num_steps"] < max_steps:
+            # Gestion des événements PyGame
+            action = None
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    break
+                elif event.type == pygame.KEYDOWN:
+                    action = self._get_action_from_key(event.key, state)
+            
+            if action is not None:
+                # Exécuter l'action
+                prev_state = state
+                next_state, reward, done, info = self.environment.step(action)
+                
+                # Enregistrer l'étape
+                step_info = {
+                    "step": episode_data["num_steps"] + 1,
+                    "state": prev_state,
+                    "action": action,
+                    "reward": reward,
+                    "next_state": next_state,
+                    "done": done,
+                    "info": info
+                }
+                episode_data["steps"].append(step_info)
+                episode_data["total_reward"] += reward
+                episode_data["num_steps"] += 1
+                
+                state = next_state
+                
+                if done:
+                    if info.get("target_reached", False):
+                        episode_data["success"] = True
+                        self.total_wins += 1
+                    running = False
+            
+            # Rendu de l'interface PyGame
+            self._render_pygame(state, episode_data, show_rewards, show_q_values, trained_algorithm)
+            self.clock.tick(60)  # 60 FPS
+        
+        pygame.quit()
+        self.pygame_initialized = False
+        
+        return self._finalize_episode(episode_data)
+    
+    def _initialize_pygame(self) -> bool:
+        """Initialise PyGame pour l'interface graphique."""
+        if not PYGAME_AVAILABLE:
+            return False
+        
+        try:
+            pygame.init()
+            
+            # Configuration de la fenêtre selon l'environnement
+            if "lineworld" in self.environment.env_name.lower():
+                width = 800
+                height = 200
+            elif "gridworld" in self.environment.env_name.lower():
+                width = 600
+                height = 600
+            else:
+                width = 800
+                height = 600
+            
+            self.screen = pygame.display.set_mode((width, height))
+            pygame.display.set_caption(f"Human Player - {self.environment.env_name}")
+            
+            self.clock = pygame.time.Clock()
+            self.font = pygame.font.Font(None, 36)
+            self.small_font = pygame.font.Font(None, 24)
+            
+            self.pygame_initialized = True
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erreur lors de l'initialisation PyGame: {e}")
+            return False
+    
+    def _get_action_from_key(self, key: int, state: int) -> Optional[int]:
+        """
+        Convertit une touche PyGame en action pour l'environnement.
+        
+        Args:
+            key (int): Code de la touche pressée
+            state (int): État actuel (pour validation)
+            
+        Returns:
+            Optional[int]: Action correspondante ou None
+        """
+        if "lineworld" in self.environment.env_name.lower():
+            # LineWorld: Flèches gauche/droite ou A/D
+            if key == pygame.K_LEFT or key == pygame.K_a:
+                return 0  # Gauche
+            elif key == pygame.K_RIGHT or key == pygame.K_d:
+                return 1  # Droite
+                
+        elif "gridworld" in self.environment.env_name.lower():
+            # GridWorld: Flèches directionnelles ou WASD
+            if key == pygame.K_UP or key == pygame.K_w:
+                return 0  # Haut
+            elif key == pygame.K_RIGHT or key == pygame.K_d:
+                return 1  # Droite
+            elif key == pygame.K_DOWN or key == pygame.K_s:
+                return 2  # Bas
+            elif key == pygame.K_LEFT or key == pygame.K_a:
+                return 3  # Gauche
+                
+        elif "monty" in self.environment.env_name.lower():
+            # Monty Hall: Chiffres 1-3 ou 1-5
+            if pygame.K_1 <= key <= pygame.K_9:
+                door_number = key - pygame.K_1
+                if door_number < self.environment.action_space_size:
+                    return door_number
+                    
+        elif "rock" in self.environment.env_name.lower():
+            # Rock Paper Scissors: R/P/S
+            if key == pygame.K_r:
+                return 0  # Rock
+            elif key == pygame.K_p:
+                return 1  # Paper
+            elif key == pygame.K_s:
+                return 2  # Scissors
+        
+        return None
+    
+    def _render_pygame(self, state: int, episode_data: Dict[str, Any], 
+                      show_rewards: bool, show_q_values: bool, trained_algorithm):
+        """Rendu de l'interface PyGame."""
+        # Couleurs
+        WHITE = (255, 255, 255)
+        BLACK = (0, 0, 0)
+        BLUE = (0, 100, 200)
+        GREEN = (0, 200, 0)
+        RED = (200, 0, 0)
+        GRAY = (128, 128, 128)
+        LIGHT_BLUE = (173, 216, 230)
+        
+        # Effacer l'écran
+        self.screen.fill(WHITE)
+        
+        # Rendu spécifique selon l'environnement
+        if "lineworld" in self.environment.env_name.lower():
+            self._render_lineworld_pygame(state, episode_data, show_rewards, WHITE, BLACK, BLUE, GREEN, RED)
+        elif "gridworld" in self.environment.env_name.lower():
+            self._render_gridworld_pygame(state, episode_data, show_rewards, WHITE, BLACK, BLUE, GREEN, RED, GRAY)
+        else:
+            self._render_generic_pygame(state, episode_data, show_rewards, WHITE, BLACK, BLUE)
+        
+        # Affichage des informations générales
+        self._render_info_panel(episode_data, show_rewards, show_q_values, trained_algorithm, state, BLACK)
+        
+        # Affichage des Q-values si demandé
+        if show_q_values and trained_algorithm and hasattr(trained_algorithm, 'q_function'):
+            self._render_q_values_pygame(state, trained_algorithm, BLACK, LIGHT_BLUE)
+        
+        # Mise à jour de l'affichage
+        pygame.display.flip()
+    
+    def _render_lineworld_pygame(self, state: int, episode_data: Dict[str, Any], 
+                               show_rewards: bool, WHITE, BLACK, BLUE, GREEN, RED):
+        """Rendu spécifique pour LineWorld."""
+        # Dimensions
+        cell_width = 120
+        cell_height = 80
+        start_x = 50
+        start_y = 80
+        
+        # Dessiner les positions
+        for pos in range(self.environment.state_space_size):
+            x = start_x + pos * cell_width
+            y = start_y
+            
+            # Couleur de la cellule
+            if pos == state:
+                color = BLUE  # Position actuelle
+            elif hasattr(self.environment, 'target_position') and pos == self.environment.target_position:
+                color = GREEN  # Cible
+            else:
+                color = WHITE  # Position vide
+            
+            # Dessiner la cellule
+            pygame.draw.rect(self.screen, color, (x, y, cell_width, cell_height))
+            pygame.draw.rect(self.screen, BLACK, (x, y, cell_width, cell_height), 2)
+            
+            # Numéro de position
+            text = self.font.render(str(pos), True, BLACK)
+            text_rect = text.get_rect(center=(x + cell_width//2, y + cell_height//2))
+            self.screen.blit(text, text_rect)
+        
+        # Instructions
+        instructions = [
+            "Utilisez les flèches ← → ou A/D pour vous déplacer",
+            "Objectif: Atteindre la position verte"
+        ]
+        for i, instruction in enumerate(instructions):
+            text = self.small_font.render(instruction, True, BLACK)
+            self.screen.blit(text, (50, 20 + i * 25))
+    
+    def _render_gridworld_pygame(self, state: int, episode_data: Dict[str, Any], 
+                               show_rewards: bool, WHITE, BLACK, BLUE, GREEN, RED, GRAY):
+        """Rendu spécifique pour GridWorld."""
+        # TODO: Implémentation GridWorld PyGame
+        # Pour l'instant, rendu basique
+        text = self.font.render("GridWorld PyGame - En cours d'implémentation", True, BLACK)
+        self.screen.blit(text, (50, 50))
+        
+        text2 = self.font.render(f"État actuel: {state}", True, BLACK)
+        self.screen.blit(text2, (50, 100))
+        
+        instructions = [
+            "Utilisez les flèches ↑↓←→ ou WASD pour vous déplacer"
+        ]
+        for i, instruction in enumerate(instructions):
+            text = self.small_font.render(instruction, True, BLACK)
+            self.screen.blit(text, (50, 150 + i * 25))
+    
+    def _render_generic_pygame(self, state: int, episode_data: Dict[str, Any], 
+                             show_rewards: bool, WHITE, BLACK, BLUE):
+        """Rendu générique pour autres environnements."""
+        text = self.font.render(f"Environnement: {self.environment.env_name}", True, BLACK)
+        self.screen.blit(text, (50, 50))
+        
+        text2 = self.font.render(f"État actuel: {state}", True, BLACK)
+        self.screen.blit(text2, (50, 100))
+        
+        text3 = self.font.render("Interface PyGame générique", True, BLACK)
+        self.screen.blit(text3, (50, 150))
+    
+    def _render_info_panel(self, episode_data: Dict[str, Any], show_rewards: bool, 
+                         show_q_values: bool, trained_algorithm, state: int, BLACK):
+        """Affiche le panneau d'informations."""
+        info_y = self.screen.get_height() - 120
+        
+        if show_rewards:
+            reward_text = f"Récompense totale: {episode_data['total_reward']:.2f}"
+            text = self.small_font.render(reward_text, True, BLACK)
+            self.screen.blit(text, (50, info_y))
+        
+        steps_text = f"Étapes: {episode_data['num_steps']}"
+        text = self.small_font.render(steps_text, True, BLACK)
+        self.screen.blit(text, (50, info_y + 25))
+        
+        # Instructions de sortie
+        exit_text = "Fermez la fenêtre ou ESC pour quitter"
+        text = self.small_font.render(exit_text, True, BLACK)
+        self.screen.blit(text, (50, info_y + 50))
+    
+    def _render_q_values_pygame(self, state: int, trained_algorithm, BLACK, LIGHT_BLUE):
+        """Affiche les Q-values dans l'interface PyGame."""
+        try:
+            q_values = trained_algorithm.q_function[state]
+            best_action = np.argmax(q_values)
+            
+            # Panneau Q-values
+            panel_x = self.screen.get_width() - 200
+            panel_y = 50
+            
+            # Fond du panneau
+            pygame.draw.rect(self.screen, LIGHT_BLUE, (panel_x, panel_y, 150, 100))
+            pygame.draw.rect(self.screen, BLACK, (panel_x, panel_y, 150, 100), 2)
+            
+            # Titre
+            title = self.small_font.render("Q-Values:", True, BLACK)
+            self.screen.blit(title, (panel_x + 5, panel_y + 5))
+            
+            # Q-values
+            for action, q_val in enumerate(q_values):
+                color = BLACK if action != best_action else (200, 0, 0)  # Rouge pour meilleure action
+                text = f"A{action}: {q_val:.2f}"
+                if action == best_action:
+                    text += " ★"
+                
+                rendered = self.small_font.render(text, True, color)
+                self.screen.blit(rendered, (panel_x + 5, panel_y + 25 + action * 20))
+                
+        except Exception as e:
+            print(f"Erreur affichage Q-values: {e}")
+    
+    def _get_human_action_console(self, state: int) -> Optional[int]:
         """
         Obtient l'action du joueur humain via l'interface console.
         
@@ -183,6 +502,8 @@ class HumanPlayer:
             print("0 = Haut ↑ | 1 = Droite → | 2 = Bas ↓ | 3 = Gauche ←")
         elif "monty" in self.environment.env_name.lower():
             print("Choisissez le numéro de la porte")
+        elif "rock" in self.environment.env_name.lower():
+            print("0 = Pierre | 1 = Feuille | 2 = Ciseaux")
         
         while True:
             try:
@@ -211,24 +532,29 @@ class HumanPlayer:
         if "lineworld" in self.environment.env_name.lower():
             print("🎯 Objectif: Atteindre la position cible")
             print("🕹️ Actions: 0 (Gauche) ou 1 (Droite)")
+            print("🎮 PyGame: Flèches ←→ ou touches A/D")
             print("⚠️ Attention: Sortir des limites donne une pénalité")
             
         elif "gridworld" in self.environment.env_name.lower():
             print("🎯 Objectif: Atteindre la case cible")
             print("🕹️ Actions: 0 (Haut), 1 (Droite), 2 (Bas), 3 (Gauche)")
+            print("🎮 PyGame: Flèches ↑↓←→ ou touches WASD")
             print("⚠️ Attention: Évitez les obstacles")
             
         elif "monty" in self.environment.env_name.lower():
             print("🎯 Objectif: Choisir la porte gagnante")
             print("🕹️ Actions: Numéro de la porte à choisir")
+            print("🎮 PyGame: Touches numériques 1, 2, 3...")
             print("💡 Astuce: Changez ou gardez votre choix selon la stratégie")
             
         elif "rock" in self.environment.env_name.lower():
             print("🎯 Objectif: Gagner le maximum de rounds")
             print("🕹️ Actions: 0 (Pierre), 1 (Feuille), 2 (Ciseaux)")
+            print("🎮 PyGame: Touches R (Rock), P (Paper), S (Scissors)")
             print("💡 Astuce: Analysez le comportement de l'adversaire")
         
-        print("💾 Tapez 'q' à tout moment pour quitter")
+        print("💾 Console: Tapez 'q' à tout moment pour quitter")
+        print("💾 PyGame: Fermez la fenêtre pour quitter")
         print("-" * 50)
     
     def _show_algorithm_suggestion(self, state: int, algorithm):
@@ -251,8 +577,24 @@ class HumanPlayer:
         except Exception as e:
             print(f"⚠️ Erreur lors de l'affichage des suggestions: {e}")
     
+    def _finalize_episode(self, episode_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Finalise et affiche le résumé de l'épisode."""
+        # Résumé de l'épisode
+        self.total_games += 1
+        self.game_history.append(episode_data)
+        
+        print(f"\n📊 RÉSUMÉ DE L'ÉPISODE:")
+        print(f"Interface utilisée: {episode_data.get('interface', 'inconnue')}")
+        print(f"Nombre d'étapes: {episode_data['num_steps']}")
+        print(f"Récompense totale: {episode_data['total_reward']:.2f}")
+        print(f"Succès: {'✅' if episode_data['success'] else '❌'}")
+        print(f"Statistiques globales: {self.total_wins}/{self.total_games} victoires ({self.total_wins/self.total_games*100:.1f}%)")
+        
+        return episode_data
+    
     def play_multiple_episodes(self, 
                              num_episodes: int = 5,
+                             interface_mode: str = "pygame",
                              show_instructions: bool = True,
                              **kwargs) -> List[Dict[str, Any]]:
         """
@@ -260,6 +602,7 @@ class HumanPlayer:
         
         Args:
             num_episodes (int): Nombre d'épisodes à jouer
+            interface_mode (str): Interface à utiliser
             show_instructions (bool): Afficher les instructions au début
             **kwargs: Arguments pour play_episode
             
@@ -269,6 +612,7 @@ class HumanPlayer:
         print(f"\n🎮 SESSION DE JEU MULTIPLE")
         print(f"Joueur: {self.player_name}")
         print(f"Nombre d'épisodes: {num_episodes}")
+        print(f"Interface: {interface_mode}")
         print("=" * 50)
         
         episodes_results = []
@@ -281,13 +625,14 @@ class HumanPlayer:
             
             try:
                 episode_result = self.play_episode(
+                    interface_mode=interface_mode,
                     show_instructions=show_instr,
                     **kwargs
                 )
                 episodes_results.append(episode_result)
                 
-                # Demander si continuer
-                if episode_num < num_episodes - 1:
+                # Demander si continuer (sauf pour PyGame qui gère ça différemment)
+                if episode_num < num_episodes - 1 and interface_mode == "console":
                     continue_input = input(f"\nContinuer vers l'épisode {episode_num + 2}? (y/n): ").strip().lower()
                     if continue_input in ['n', 'no', 'non']:
                         print("Session de jeu interrompue par le joueur")
@@ -321,23 +666,28 @@ class HumanPlayer:
         avg_reward = total_reward / total_episodes
         avg_steps = sum(episode['num_steps'] for episode in episodes_results) / total_episodes
         
+        interfaces_used = set(ep.get('interface', 'unknown') for ep in episodes_results)
+        
         print(f"Épisodes joués: {total_episodes}")
+        print(f"Interfaces utilisées: {', '.join(interfaces_used)}")
         print(f"Victoires: {total_wins}/{total_episodes} ({total_wins/total_episodes*100:.1f}%)")
         print(f"Récompense moyenne: {avg_reward:.2f}")
         print(f"Nombre d'étapes moyen: {avg_steps:.1f}")
         
         # Détail par épisode
         print(f"\n📋 DÉTAIL PAR ÉPISODE:")
-        print(f"{'Épisode':<8}{'Succès':<8}{'Récompense':<12}{'Étapes':<8}")
-        print("-" * 36)
+        print(f"{'Épisode':<8}{'Interface':<10}{'Succès':<8}{'Récompense':<12}{'Étapes':<8}")
+        print("-" * 46)
         
         for i, episode in enumerate(episodes_results, 1):
             success_icon = "✅" if episode['success'] else "❌"
-            print(f"{i:<8}{success_icon:<8}{episode['total_reward']:<12.2f}{episode['num_steps']:<8}")
+            interface = episode.get('interface', 'unknown')[:9]
+            print(f"{i:<8}{interface:<10}{success_icon:<8}{episode['total_reward']:<12.2f}{episode['num_steps']:<8}")
     
     def compare_with_algorithm(self, 
                              algorithm,
                              num_episodes: int = 5,
+                             interface_mode: str = "pygame",
                              show_comparison: bool = True) -> Dict[str, Any]:
         """
         Compare les performances humaines avec un algorithme.
@@ -345,6 +695,7 @@ class HumanPlayer:
         Args:
             algorithm: Algorithme entraîné à comparer
             num_episodes (int): Nombre d'épisodes pour la comparaison
+            interface_mode (str): Interface à utiliser
             show_comparison (bool): Afficher la comparaison détaillée
             
         Returns:
@@ -353,12 +704,14 @@ class HumanPlayer:
         print(f"\n🏆 DÉFI HUMAIN VS ALGORITHME")
         print(f"Humain: {self.player_name}")
         print(f"Algorithme: {algorithm.algo_name}")
+        print(f"Interface: {interface_mode}")
         print("=" * 50)
         
         # Jeu humain
         print(f"\n👤 TOUR DU JOUEUR HUMAIN")
         human_results = self.play_multiple_episodes(
             num_episodes=num_episodes,
+            interface_mode=interface_mode,
             show_instructions=True,
             show_q_values=True,
             trained_algorithm=algorithm
@@ -386,7 +739,8 @@ class HumanPlayer:
             "human_performance": {
                 "avg_reward": human_avg_reward,
                 "win_rate": human_win_rate,
-                "episodes": len(human_results)
+                "episodes": len(human_results),
+                "interface_used": interface_mode
             },
             "algorithm_performance": {
                 "avg_reward": algo_results["avg_reward"],
@@ -433,6 +787,7 @@ class HumanPlayer:
         
         rewards = [game['total_reward'] for game in self.game_history]
         steps = [game['num_steps'] for game in self.game_history]
+        interfaces = [game.get('interface', 'unknown') for game in self.game_history]
         
         return {
             "player_name": self.player_name,
@@ -444,6 +799,7 @@ class HumanPlayer:
             "best_reward": max(rewards),
             "worst_reward": min(rewards),
             "avg_steps": sum(steps) / len(steps),
+            "interfaces_used": list(set(interfaces)),
             "game_history": self.game_history
         }
     
@@ -478,23 +834,26 @@ class HumanPlayer:
 
 
 # Fonction utilitaire pour lancer rapidement le mode humain
-def quick_human_game(environment, player_name: str = "Player1", num_episodes: int = 1):
+def quick_human_game(environment, player_name: str = "Player1", 
+                    interface_mode: str = "pygame", num_episodes: int = 1):
     """
     Lance rapidement un jeu humain sur un environnement.
     
     Args:
         environment: Environnement de jeu
         player_name (str): Nom du joueur
+        interface_mode (str): Interface à utiliser ("pygame" ou "console")
         num_episodes (int): Nombre d'épisodes
     """
     human = HumanPlayer(environment, player_name)
     
     if num_episodes == 1:
-        return human.play_episode()
+        return human.play_episode(interface_mode=interface_mode)
     else:
-        return human.play_multiple_episodes(num_episodes)
+        return human.play_multiple_episodes(num_episodes, interface_mode=interface_mode)
 
 
 if __name__ == "__main__":
     print("🎮 Mode Agent Humain - Prêt pour les tests!")
-    print("Utilisez quick_human_game(environment) pour tester rapidement")
+    print("Utilise PyGame pour interface graphique interactive")
+    print("Utilise quick_human_game(environment) pour tester rapidement")

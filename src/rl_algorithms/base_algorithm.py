@@ -196,9 +196,7 @@ class BaseAlgorithm(ABC):
             bool: True si le chargement a réussi
         """
         pass
-    
-    # ==================== NOUVELLES MÉTHODES POUR APPROCHE HYBRIDE ====================
-    
+        
     def to_config(self) -> Dict[str, Any]:
         """
         NOUVELLE : Exporte la configuration actuelle de l'algorithme.
@@ -312,7 +310,6 @@ class BaseAlgorithm(ABC):
             "required_features": self.required_environment_features
         }
     
-    # ==================== MÉTHODES EXISTANTES AMÉLIORÉES ====================
     
     def get_q_function(self) -> Union[np.ndarray, Dict[Tuple[int, int], float], None]:
         """
@@ -390,17 +387,17 @@ class BaseAlgorithm(ABC):
     
     def get_training_summary(self) -> Dict[str, Any]:
         """
-        AMÉLIORÉE : Retourne un résumé des statistiques d'entraînement.
+        Retourne un résumé des statistiques d'entraînement.
         
         Returns:
             Dict[str, Any]: Résumé des statistiques
         """
-        return self.get_training_results()  # Utilise la nouvelle méthode complète
+        return self.get_training_results() 
     
     def evaluate_policy(self, environment, num_episodes: int = 100, 
                        max_steps: int = 1000) -> Dict[str, float]:
         """
-        AMÉLIORÉE : Évalue la politique apprise sur un environnement.
+        Évalue la politique apprise sur un environnement.
         
         Cette méthode permet à l'algorithme d'auto-évaluer ses performances,
         compatible avec l'Agent wrapper.

@@ -306,7 +306,6 @@ class LineWorld(BaseEnvironment):
             elif state > self.target_position:
                 policy[state] = self.ACTION_LEFT
             else:
-                # À la cible, n'importe quelle action (on reste sur place)
                 policy[state] = self.ACTION_RIGHT
         return policy
     
@@ -359,9 +358,9 @@ def create_challenging_lineworld() -> LineWorld:
     """Crée un Line World plus challengeant."""
     return LineWorld(
         line_length=10, 
-        start_position=None,  # Position aléatoire
+        start_position=0,  
         target_position=9,
-        reward_step=-0.01,    # Pénalité plus faible
+        reward_step=-0.01, 
         max_steps=50
     )
 
