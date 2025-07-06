@@ -1,0 +1,31 @@
+{
+  "agent_info": {
+    "name": "TestAgent_test_base_workflow_v4",
+    "algorithm": "Q-Learning",
+    "environment": "LineWorld"
+  },
+  "evaluation_history": [
+    {
+      "agent_name": "TestAgent_test_base_workflow_v4",
+      "num_episodes": 100,
+      "avg_reward": 1.0,
+      "std_reward": 0.0,
+      "min_reward": 1.0,
+      "max_reward": 1.0,
+      "avg_episode_length": 2.0,
+      "success_rate": 1.0,
+      "evaluation_time": 0.0004649162292480469,
+      "timestamp": "2025-07-07T00:32:18.766116"
+    }
+  ],
+  "demonstration_history": [
+    {
+      "timestamp": "2025-07-07T00:32:19.772106",
+      "demonstrations": [
+        {
+          "episode": 1,
+          "steps": [
+            {
+              "step": 1,
+              "state": 2,
+              "action": 

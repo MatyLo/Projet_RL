@@ -1,0 +1,45 @@
+{
+  "experiment": {
+    "name": "test_base_workflow_v4",
+    "description": "Test complet du workflow LineWorld + Q-Learning + Agent",
+    "version": "4.0",
+    "author": "Équipe RL"
+  },
+  
+  "environment": {
+    "type": "lineworld",
+    "max_steps": 100
+  },
+  
+  "algorithm": {
+    "type": "q_learning",
+    "learning_rate": 0.1,
+    "gamma": 0.9,
+    "epsilon": 0.3,
+    "epsilon_decay": 0.995,
+    "epsilon_min": 0.01
+  },
+  
+  "training": {
+    "num_episodes": 500,
+    "verbose": true,
+    "save_model": true
+  },
+  
+  "evaluation": {
+    "num_episodes": 100,
+    "verbose": true
+  },
+  
+  "demonstration": {
+    "num_episodes": 1,
+    "show_q_values": true,
+    "pause_between_steps": false
+  },
+  
+  "outputs": {
+    "base_dir": "outputs/test_v4",
+    "save_results": true,
+    "save_model": true
+  }
+}
