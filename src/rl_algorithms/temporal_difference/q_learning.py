@@ -28,6 +28,7 @@ class QLearning(BaseAlgorithm):
     >>> q_algo = QLearning.from_config(config, environment)
     >>> q_algo.train(environment, num_episodes=1000)
     >>> # Ensuite utiliser avec Agent wrapper
+    >>> tout le workflow peut être fait en lancant un des tests dans demo_scripts (v4)
     """
     
     def __init__(self, 

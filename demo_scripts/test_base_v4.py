@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Test Complet du Workflow Base - Version 4
 
@@ -12,7 +11,7 @@ Ce script teste l'architecture complète du projet RL :
 
 Usage:
     python demo_scripts/test_base_v4.py
-    python demo_scripts/test_base_v4.py --config custom_config.json
+    python demo_scripts/test_base_v4.py --config test_config.json
 """
 
 import sys

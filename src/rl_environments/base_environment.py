@@ -1,5 +1,5 @@
 """
-Classe abstraite de base pour tous les environnements d'apprentissage par renforcement.
+Classe abstraite de base pour tous les environnements.
 
 Cette classe définit l'interface commune que tous les environnements doivent respecter
 pour être compatibles avec les algorithmes d'apprentissage par renforcement.
@@ -29,7 +29,7 @@ class BaseEnvironment(ABC):
         self.current_state = None
         self.episode_step = 0
         self.total_reward = 0.0
-        self.episode_history = []  # Historique de l'épisode en cours
+        self.episode_history = []
         
     @property
     @abstractmethod
@@ -134,7 +134,7 @@ class BaseEnvironment(ABC):
     def get_transition_probabilities(self, state: int, action: int) -> Dict[int, float]:
         """
         Retourne les probabilités de transition depuis un état avec une action.
-        Méthode optionnelle - utile pour les algorithmes de programmation dynamique.
+        Méthode utile pour les algorithmes de programmation dynamique.
         
         Args:
             state (int): État de départ
@@ -144,7 +144,6 @@ class BaseEnvironment(ABC):
             Dict[int, float]: Dictionnaire {next_state: probability}
         """
         # Par défaut, retourne une transition déterministe vers l'état actuel
-        # Les environnements stochastiques peuvent overrider cette méthode
         return {state: 1.0}
     
     def get_reward_function(self, state: int, action: int, next_state: int) -> float:

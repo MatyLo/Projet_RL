@@ -37,7 +37,6 @@ class LineWorld(BaseEnvironment):
     ACTION_RIGHT = 1
     ACTION_NAMES = {ACTION_LEFT: "Left", ACTION_RIGHT: "Right"}
     
-    # Récompenses selon les spécifications
     REWARD_NEGATIVE = -1.0  # Position 0
     REWARD_NEUTRAL = 0.0    # Déplacements normaux
     REWARD_POSITIVE = 1.0   # Position 4
@@ -169,7 +168,6 @@ class LineWorld(BaseEnvironment):
         if self.current_state in self.transitions:
             next_state, reward = self.transitions[self.current_state][action]
         else:
-            # Sécurité (ne devrait pas arriver avec les règles du prof)
             next_state, reward = self.current_state, 0.0
         
         self.current_state = next_state
