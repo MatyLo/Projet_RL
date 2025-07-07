@@ -1,15 +1,12 @@
 """
-Gestionnaire de configurations JSON pour le projet d'apprentissage par renforcement.
+Gestionnaire de configurations JSON simplifié pour le projet RL.
 
-Ce module fournit des utilitaires pour charger, valider et gérer les configurations
-des environnements et algorithmes depuis des fichiers JSON.
-
-Placement: utils/config_loader.py
+Version allégée sans héritage complexe - plus facile pour les étudiants.
 """
 
 import json
 import os
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List
 from pathlib import Path
 
 
@@ -20,10 +17,9 @@ class ConfigError(Exception):
 
 class ConfigLoader:
     """
-    Gestionnaire de configurations JSON pour le projet RL.
+    Gestionnaire de configurations JSON simplifié.
     
-    Supporte le chargement de configurations hiérarchiques avec héritage
-    et validation des paramètres.
+    Supprime la complexité de l'héritage pour faciliter la compréhension.
     """
     
     def __init__(self, base_config_dir: str = "experiments/configs"):
@@ -34,7 +30,7 @@ class ConfigLoader:
             base_config_dir (str): Répertoire de base pour les configurations
         """
         self.base_config_dir = Path(base_config_dir)
-        self.loaded_configs = {}  # Cache des configurations chargées
+        self.loaded_configs = {}  #
         
     def load(self, config_path: str, use_cache: bool = True) -> Dict[str, Any]:
         """
@@ -69,11 +65,7 @@ class ConfigLoader:
         except json.JSONDecodeError as e:
             raise ConfigError(f"Erreur de syntaxe JSON dans {full_path}: {e}")
         
-        # Traitement de l'héritage (si extends existe)
-        if 'extends' in config:
-            config = self._process_inheritance(config, full_path.parent)
-        
-        # Validation de base
+        # Validation simple
         validated_config = self._validate_config(config)
         
         # Mise en cache
@@ -81,55 +73,6 @@ class ConfigLoader:
             self.loaded_configs[str(full_path)] = validated_config.copy()
         
         return validated_config
-    
-    def _process_inheritance(self, config: Dict[str, Any], config_dir: Path) -> Dict[str, Any]:
-        """
-        Traite l'héritage de configuration (extends).
-        
-        Args:
-            config (Dict): Configuration avec extends
-            config_dir (Path): Répertoire de la configuration actuelle
-            
-        Returns:
-            Dict[str, Any]: Configuration avec héritage résolu
-        """
-        extends_path = config.pop('extends')
-        
-        # Chargement de la configuration parent
-        if not extends_path.endswith('.json'):
-            extends_path += '.json'
-            
-        parent_path = config_dir / extends_path
-        try:
-            with open(parent_path, 'r', encoding='utf-8') as f:
-                parent_config = json.load(f)
-        except FileNotFoundError:
-            raise ConfigError(f"Configuration parent non trouvée: {parent_path}")
-        
-        # Fusion des configurations (enfant override parent)
-        merged_config = self._deep_merge(parent_config, config)
-        return merged_config
-    
-    def _deep_merge(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Fusion profonde de deux dictionnaires.
-        
-        Args:
-            base (Dict): Configuration de base
-            override (Dict): Configuration qui override
-            
-        Returns:
-            Dict[str, Any]: Configuration fusionnée
-        """
-        result = base.copy()
-        
-        for key, value in override.items():
-            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
-                result[key] = self._deep_merge(result[key], value)
-            else:
-                result[key] = value
-        
-        return result
     
     def _validate_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -139,130 +82,82 @@ class ConfigLoader:
             config (Dict): Configuration à valider
             
         Returns:
-            Dict[str, Any]: Configuration validée
+            Dict[str, Any]: Configuration validée avec defaults
             
         Raises:
             ConfigError: Si la configuration est invalide
         """
-        required_sections = ['experiment', 'environment', 'algorithms']
+        # Vérification des sections minimales
+        if 'experiment' not in config:
+            raise ConfigError("Section 'experiment' obligatoire manquante")
         
-        # Vérification des sections obligatoires
-        for section in required_sections:
-            if section not in config:
-                raise ConfigError(f"Section obligatoire manquante: {section}")
+        if 'environment' not in config:
+            raise ConfigError("Section 'environment' obligatoire manquante")
         
-        # Validation spécifique par section
-        self._validate_experiment_config(config['experiment'])
-        self._validate_environment_config(config['environment'])
-        self._validate_algorithms_config(config['algorithms'])
+        # Ajout des defaults simples
+        self._add_defaults(config)
         
         return config
     
-    def _validate_experiment_config(self, experiment_config: Dict[str, Any]):
-        """Valide la configuration d'expérience."""
-        required_fields = ['name', 'description']
-        for field in required_fields:
-            if field not in experiment_config:
-                raise ConfigError(f"Champ obligatoire manquant dans experiment: {field}")
-    
-    def _validate_environment_config(self, env_config: Dict[str, Any]):
-        """Valide la configuration d'environnement."""
-        if 'type' not in env_config:
-            raise ConfigError("Le type d'environnement doit être spécifié")
-            
-        env_type = env_config['type']
+    def _add_defaults(self, config: Dict[str, Any]):
+        """Ajoute les valeurs par défaut manquantes."""
         
-        # Validation spécifique par type d'environnement
-        if env_type == 'lineworld':
-            self._validate_lineworld_config(env_config)
-        elif env_type == 'gridworld':
-            self._validate_gridworld_config(env_config)
-        # Ajouter d'autres validations selon les environnements
-    
-    def _validate_lineworld_config(self, config: Dict[str, Any]):
-        """Valide la configuration LineWorld."""
-        defaults = {
-            'line_length': 5,
-            'start_position': 0,
-            'target_position': 4,
-            'reward_target': 10.0,
-            'reward_step': -0.1,
-            'reward_boundary': -1.0,
-            'max_steps': 100
-        }
+        # Defaults pour experiment
+        if 'name' not in config['experiment']:
+            config['experiment']['name'] = "unnamed_experiment"
         
-        # Ajout des valeurs par défaut si manquantes
-        for key, default_value in defaults.items():
-            if key not in config:
-                config[key] = default_value
-    
-    def _validate_gridworld_config(self, config: Dict[str, Any]):
-        """Valide la configuration GridWorld."""
-        defaults = {
-            'grid_size': [5, 5],
-            'start_position': [0, 0],
-            'target_position': [4, 4],
-            'obstacles': [],
-            'reward_target': 10.0,
-            'reward_step': -0.1,
-            'reward_obstacle': -1.0,
-            'max_steps': 100
-        }
+        # Defaults pour environment
+        env_config = config['environment']
+        if env_config.get('type') == 'lineworld':
+            defaults = {
+                'max_steps': 100,
+                'line_length': 5,
+                'start_position': 2,
+                'target_position': 4
+            }
+            for key, value in defaults.items():
+                if key not in env_config:
+                    env_config[key] = value
         
-        for key, default_value in defaults.items():
-            if key not in config:
-                config[key] = default_value
-    
-    def _validate_algorithms_config(self, algorithms_config: Dict[str, Any]):
-        """Valide la configuration des algorithmes."""
-        for algo_name, algo_config in algorithms_config.items():
-            if not isinstance(algo_config, dict):
-                raise ConfigError(f"Configuration invalide pour l'algorithme: {algo_name}")
-            
-            # Validation spécifique par algorithme
-            if algo_name == 'q_learning':
-                self._validate_qlearning_config(algo_config)
-            elif algo_name == 'sarsa':
-                self._validate_sarsa_config(algo_config)
-    
-    def _validate_qlearning_config(self, config: Dict[str, Any]):
-        """Valide la configuration Q-Learning."""
-        defaults = {
-            'learning_rate': 0.1,
-            'gamma': 0.9,
-            'epsilon': 0.1,
-            'epsilon_decay': 0.995,
-            'epsilon_min': 0.01,
+        # Defaults pour algorithms (si présent)
+        if 'algorithm' in config:
+            algo_config = config['algorithm']
+            if algo_config.get('type') == 'q_learning':
+                defaults = {
+                    'learning_rate': 0.1,
+                    'gamma': 0.9,
+                    'epsilon': 0.1,
+                    'epsilon_decay': 0.995,
+                    'epsilon_min': 0.01
+                }
+                for key, value in defaults.items():
+                    if key not in algo_config:
+                        algo_config[key] = value
+        
+        # Defaults pour training (si présent)
+        if 'training' not in config:
+            config['training'] = {}
+        
+        training_defaults = {
             'num_episodes': 1000,
-            'initial_q_value': 0.0
+            'verbose': True,
+            'save_model': True
         }
+        for key, value in training_defaults.items():
+            if key not in config['training']:
+                config['training'][key] = value
         
-        for key, default_value in defaults.items():
-            if key not in config:
-                config[key] = default_value
+        # Defaults pour evaluation (si présent)
+        if 'evaluation' not in config:
+            config['evaluation'] = {}
         
-        # Validation des valeurs
-        if not 0 <= config['learning_rate'] <= 1:
-            raise ConfigError("learning_rate doit être entre 0 et 1")
-        if not 0 <= config['gamma'] <= 1:
-            raise ConfigError("gamma doit être entre 0 et 1")
-        if not 0 <= config['epsilon'] <= 1:
-            raise ConfigError("epsilon doit être entre 0 et 1")
-    
-    def _validate_sarsa_config(self, config: Dict[str, Any]):
-        """Valide la configuration SARSA."""
-        defaults = {
-            'learning_rate': 0.1,
-            'gamma': 0.9,
-            'epsilon': 0.1,
-            'epsilon_decay': 0.995,
-            'epsilon_min': 0.01,
-            'num_episodes': 1000
+        eval_defaults = {
+            'num_episodes': 100,
+            'verbose': True
         }
-        
-        for key, default_value in defaults.items():
-            if key not in config:
-                config[key] = default_value
+        for key, value in eval_defaults.items():
+            if key not in config['evaluation']:
+                config['evaluation'][key] = value
     
     def save_config(self, config: Dict[str, Any], config_path: str):
         """
@@ -307,50 +202,11 @@ class ConfigLoader:
         
         return sorted(config_files)
     
-    def get_algorithm_config(self, config: Dict[str, Any], algorithm_name: str) -> Dict[str, Any]:
-        """
-        Extrait la configuration d'un algorithme spécifique.
-        
-        Args:
-            config (Dict): Configuration complète
-            algorithm_name (str): Nom de l'algorithme
-            
-        Returns:
-            Dict[str, Any]: Configuration de l'algorithme
-            
-        Raises:
-            ConfigError: Si l'algorithme n'est pas trouvé
-        """
-        if 'algorithms' not in config:
-            raise ConfigError("Section 'algorithms' manquante dans la configuration")
-        
-        if algorithm_name not in config['algorithms']:
-            available = list(config['algorithms'].keys())
-            raise ConfigError(f"Algorithme '{algorithm_name}' non trouvé. Disponibles: {available}")
-        
-        return config['algorithms'][algorithm_name].copy()
-    
-    def get_environment_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Extrait la configuration d'environnement.
-        
-        Args:
-            config (Dict): Configuration complète
-            
-        Returns:
-            Dict[str, Any]: Configuration de l'environnement
-        """
-        if 'environment' not in config:
-            raise ConfigError("Section 'environment' manquante dans la configuration")
-        
-        return config['environment'].copy()
-    
     def clear_cache(self):
-        """Vide le cache des configurations."""
+        """Vide la liste des configurations enregistré dans init."""
         self.loaded_configs.clear()
 
 
-# Fonctions utilitaires globales
 def load_config(config_path: str, base_dir: str = "experiments/configs") -> Dict[str, Any]:
     """
     Fonction utilitaire pour charger rapidement une configuration.
@@ -366,37 +222,39 @@ def load_config(config_path: str, base_dir: str = "experiments/configs") -> Dict
     return loader.load(config_path)
 
 
-def create_default_config(env_type: str, algorithm_name: str) -> Dict[str, Any]:
+def create_simple_config(env_type: str, algorithm_type: str) -> Dict[str, Any]:
     """
-    Crée une configuration par défaut pour un environnement et algorithme.
+    Crée une configuration simple pour un environnement et algorithme.
     
     Args:
         env_type (str): Type d'environnement ('lineworld', 'gridworld', etc.)
-        algorithm_name (str): Nom de l'algorithme ('q_learning', 'sarsa', etc.)
+        algorithm_type (str): Type d'algorithme ('q_learning', 'sarsa', etc.)
         
     Returns:
-        Dict[str, Any]: Configuration par défaut
+        Dict[str, Any]: Configuration simple
     """
     config = {
         "experiment": {
-            "name": f"default_{env_type}_{algorithm_name}",
-            "description": f"Configuration par défaut pour {env_type} avec {algorithm_name}",
-            "tags": ["default", env_type, algorithm_name]
+            "name": f"simple_{env_type}_{algorithm_type}",
+            "description": f"Configuration simple pour {env_type} avec {algorithm_type}"
         },
         "environment": {
             "type": env_type
         },
-        "algorithms": {
-            algorithm_name: {}
+        "algorithm": {
+            "type": algorithm_type
         },
         "training": {
-            "save_frequency": 100,
-            "evaluation_frequency": 50,
+            "num_episodes": 1000,
+            "verbose": True
+        },
+        "evaluation": {
+            "num_episodes": 100,
             "verbose": True
         }
     }
     
-    # Validation pour ajouter les defaults
+    # Validation automatique pour ajouter les defaults
     loader = ConfigLoader()
     validated_config = loader._validate_config(config)
     
@@ -404,16 +262,16 @@ def create_default_config(env_type: str, algorithm_name: str) -> Dict[str, Any]:
 
 
 if __name__ == "__main__":
-    # Test du système de configuration
-    print("Test du système de configuration")
+    # Test du système simplifié
+    print("Test du système de configuration simplifié")
     
-    # Création d'une configuration par défaut
-    config = create_default_config("lineworld", "q_learning")
-    print("Configuration par défaut créée:")
+    # Création d'une configuration simple
+    config = create_simple_config("lineworld", "q_learning")
+    print("Configuration simple créée:")
     print(json.dumps(config, indent=2))
     
     # Test du chargement
     loader = ConfigLoader()
     print(f"\nFichiers de configuration disponibles: {loader.list_configs()}")
     
-    print("\n✅ Système de configuration prêt !")
+    print("\n✅ Système de configuration simplifié prêt !")

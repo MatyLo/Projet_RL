@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Démonstration PyGame - Visualisation et démo pas-à-pas du modèle entraîné
 
