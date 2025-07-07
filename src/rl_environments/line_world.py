@@ -1,8 +1,7 @@
 """
-Line World Environment - Environnement en ligne pour l'apprentissage par renforcement.
-
+Line World Environment
 Spécifications:
-- États: [0, 1, 2, 3, 4] (positions sur la ligne)
+- États: [0, 1, 2, 3, 4]
 - Actions: [0, 1] (0: Left, 1: Right)  
 - Récompenses: [-1.0, 0.0, 1.0]
 - États terminaux: [0, 4]
@@ -27,7 +26,7 @@ class LineWorld(BaseEnvironment):
     """
     Environnement Line World selon les spécifications du projet.
     
-    Compatible avec TOUS les algorithmes d'apprentissage par renforcement :
+    Méthode différente selon type de modèle, mais compatible avec tous les modèle :
     - Expérience : Q-Learning, SARSA, Monte Carlo (via step/reset)
     - Modèle : Policy Iteration, Value Iteration (via matrices de transition)
     """
@@ -353,7 +352,7 @@ class LineWorld(BaseEnvironment):
         return state in self.terminal_states
 
 
-# Fonction utilitaire pour créer l'environnement standard
+# Fonction pour créer l'environnement standard
 def create_lineworld():
     """Crée l'environnement LineWorld standard."""
     return LineWorld()
