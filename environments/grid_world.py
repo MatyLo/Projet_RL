@@ -19,7 +19,7 @@ class GridWorld(BaseEnvironment):
         self.T = [self._to_state(goal_pos)]
         self.state = self._to_state(start_pos)
         self.p = self._build_transition_matrix()
-        super().__init__()
+        super().__init__("GridWorld")
 
     def _to_state(self, pos):
         return pos[0] * self.width + pos[1]
@@ -99,4 +99,21 @@ class GridWorld(BaseEnvironment):
     
     def get_terminal_states(self):
         """Retourne la liste des états terminaux."""
-        return self.T 
+        return self.T
+    
+    # Méthodes requises par BaseEnvironment
+    @property
+    def state_space_size(self) -> int:
+        return len(self.S)
+    
+    @property
+    def action_space_size(self) -> int:
+        return len(self.A)
+    
+    @property
+    def valid_actions(self):
+        return self.A
+    
+    def get_state_description(self, state: int) -> str:
+        pos = self._to_pos(state)
+        return f"Position ({pos[0]}, {pos[1]})" 

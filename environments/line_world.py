@@ -31,7 +31,7 @@ class LineWorld(BaseEnvironment):
         # Initialisation de la matrice de transition
         self.p = np.zeros((len(self.S), len(self.A), len(self.S), len(self.R)))
         self._initialize_transition_matrix()
-        super().__init__()
+        super().__init__("LineWorld")
         
     def _initialize_transition_matrix(self):
         """Initialise la matrice de transition p(s, a, s', r)."""
@@ -110,4 +110,20 @@ class LineWorld(BaseEnvironment):
     
     def get_terminal_states(self) -> List[int]:
         """Retourne la liste des états terminaux."""
-        return self.T 
+        return self.T
+    
+    # Méthodes requises par BaseEnvironment
+    @property
+    def state_space_size(self) -> int:
+        return len(self.S)
+    
+    @property
+    def action_space_size(self) -> int:
+        return len(self.A)
+    
+    @property
+    def valid_actions(self):
+        return self.A
+    
+    def get_state_description(self, state: int) -> str:
+        return f"Position {state}" 
