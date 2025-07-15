@@ -19,7 +19,7 @@ Compatible avec TOUS les algorithmes RL :
 import numpy as np
 from typing import Tuple, List, Dict, Any
 
-from src.rl_environments.base_environment import BaseEnvironment
+from .base_environment import BaseEnvironment
 
 
 class LineWorld(BaseEnvironment):
