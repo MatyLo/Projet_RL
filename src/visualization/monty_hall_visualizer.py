@@ -1,6 +1,8 @@
 import pygame
 import sys
 import time
+import importlib
+import inspect
 from typing import Dict, Any, List, Tuple
 import numpy as np
 
@@ -26,6 +28,8 @@ class MontyHallVisualizer:
         self.LIGHT_BLUE = (173, 216, 230)
         self.BROWN = (139, 69, 19)
         self.PURPLE = (128, 0, 128)
+        self.ORANGE = (255, 165, 0)
+        self.DARK_GREEN = (0, 100, 0)
         # Police
         self.font = pygame.font.Font(None, 36)
         self.small_font = pygame.font.Font(None, 24)
@@ -35,6 +39,169 @@ class MontyHallVisualizer:
         self.door_width = 120
         self.door_height = 200
         self.door_spacing = 50
+
+    def get_available_algorithms(self) -> List[str]:
+        """Détecte automatiquement les algorithmes disponibles."""
+        try:
+            from rl_algorithms import QLearning, SARSA, ValueIteration
+            algorithms = []
+            algorithms.append('Q-Learning')
+            algorithms.append('SARSA')
+            algorithms.append('Value Iteration')
+            return algorithms
+        except ImportError:
+            # Fallback si l'import échoue
+            return ['Q-Learning', 'SARSA', 'Value Iteration']
+
+    def render_main_menu(self) -> Tuple[str, str]:
+        """Affiche le menu principal et retourne le mode et l'algorithme choisis."""
+        mode = None
+        algorithm = None
+        
+        while mode is None and self.running:
+            self.clear_screen()
+            
+            # Fond dégradé
+            for i in range(self.height):
+                color = (
+                    int(230 - i * 80 / self.height),
+                    int(245 - i * 60 / self.height),
+                    int(255 - i * 40 / self.height)
+                )
+                pygame.draw.line(self.screen, color, (0, i), (self.width, i))
+            
+            # Titre
+            pygame.draw.rect(self.screen, (33, 150, 243), (0, 0, self.width, 100), border_radius=0)
+            self.draw_text("MONTY HALL PROBLEM", self.width//2 - 200, 20, self.WHITE, self.large_font)
+            self.draw_text("Choisissez votre mode de jeu", self.width//2 - 180, 60, self.WHITE, self.font)
+            
+            # Boutons de mode
+            btn_width = 200
+            btn_height = 80
+            btn_y = 200
+            
+            # Bouton Humain
+            human_rect = pygame.Rect(self.width//2 - btn_width - 50, btn_y, btn_width, btn_height)
+            human_color = (76, 175, 80) if pygame.mouse.get_pos()[1] >= btn_y and pygame.mouse.get_pos()[1] <= btn_y + btn_height and pygame.mouse.get_pos()[0] >= human_rect.x and pygame.mouse.get_pos()[0] <= human_rect.x + btn_width else (56, 142, 60)
+            pygame.draw.rect(self.screen, human_color, human_rect, border_radius=20)
+            self.draw_text("MODE HUMAIN", human_rect.x + 20, human_rect.y + 25, self.WHITE, self.font)
+            self.draw_text("Jouez vous-même", human_rect.x + 30, human_rect.y + 50, self.WHITE, self.small_font)
+            
+            # Bouton Agent
+            agent_rect = pygame.Rect(self.width//2 + 50, btn_y, btn_width, btn_height)
+            agent_color = (255, 152, 0) if pygame.mouse.get_pos()[1] >= btn_y and pygame.mouse.get_pos()[1] <= btn_y + btn_height and pygame.mouse.get_pos()[0] >= agent_rect.x and pygame.mouse.get_pos()[0] <= agent_rect.x + btn_width else (245, 124, 0)
+            pygame.draw.rect(self.screen, agent_color, agent_rect, border_radius=20)
+            self.draw_text("MODE AGENT", agent_rect.x + 30, agent_rect.y + 25, self.WHITE, self.font)
+            self.draw_text("IA joue pour vous", agent_rect.x + 25, agent_rect.y + 50, self.WHITE, self.small_font)
+            
+            # Instructions
+            self.draw_text("Cliquez sur un mode pour commencer", self.width//2 - 200, 350, self.BLACK, self.font)
+            
+            self.update_display()
+            
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                    return None, None
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        self.running = False
+                        return None, None
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    mouse_x, mouse_y = event.pos
+                    if human_rect.collidepoint(mouse_x, mouse_y):
+                        mode = "human"
+                        algorithm = None
+                    elif agent_rect.collidepoint(mouse_x, mouse_y):
+                        mode = "agent"
+                        # Afficher le menu de sélection d'algorithme
+                        algorithm = self.render_algorithm_menu()
+            
+            self.clock.tick(self.fps)
+        
+        return mode, algorithm
+
+    def render_algorithm_menu(self) -> str:
+        """Affiche le menu de sélection d'algorithme et retourne l'algorithme choisi."""
+        algorithms = self.get_available_algorithms()
+        selected_algorithm = None
+        
+        while selected_algorithm is None and self.running:
+            self.clear_screen()
+            
+            # Fond dégradé
+            for i in range(self.height):
+                color = (
+                    int(230 - i * 80 / self.height),
+                    int(245 - i * 60 / self.height),
+                    int(255 - i * 40 / self.height)
+                )
+                pygame.draw.line(self.screen, color, (0, i), (self.width, i))
+            
+            # Titre
+            pygame.draw.rect(self.screen, (33, 150, 243), (0, 0, self.width, 100), border_radius=0)
+            self.draw_text("SÉLECTION DE L'ALGORITHME", self.width//2 - 250, 20, self.WHITE, self.large_font)
+            self.draw_text("Choisissez l'algorithme d'apprentissage", self.width//2 - 200, 60, self.WHITE, self.font)
+            
+            # Boutons d'algorithmes
+            btn_width = 250
+            btn_height = 70
+            btn_y = 150
+            btn_spacing = 20
+            
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            
+            for i, algorithm in enumerate(algorithms):
+                btn_x = self.width//2 - btn_width//2
+                btn_y_pos = btn_y + i * (btn_height + btn_spacing)
+                btn_rect = pygame.Rect(btn_x, btn_y_pos, btn_width, btn_height)
+                
+                # Couleur selon le survol
+                if btn_rect.collidepoint(mouse_x, mouse_y):
+                    btn_color = (76, 175, 80)
+                else:
+                    btn_color = (56, 142, 60)
+                
+                pygame.draw.rect(self.screen, btn_color, btn_rect, border_radius=15)
+                self.draw_text(algorithm, btn_x + 20, btn_y_pos + 20, self.WHITE, self.font)
+            
+            # Bouton retour
+            back_rect = pygame.Rect(50, self.height - 80, 120, 50)
+            back_color = (244, 67, 54) if back_rect.collidepoint(mouse_x, mouse_y) else (211, 47, 47)
+            pygame.draw.rect(self.screen, back_color, back_rect, border_radius=10)
+            self.draw_text("Retour", back_rect.x + 20, back_rect.y + 15, self.WHITE, self.font)
+            
+            # Instructions
+            self.draw_text("Cliquez sur un algorithme pour le sélectionner", self.width//2 - 250, self.height - 120, self.BLACK, self.font)
+            
+            self.update_display()
+            
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                    return None
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        return None
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    mouse_x, mouse_y = event.pos
+                    
+                    # Vérifier les boutons d'algorithmes
+                    for i, algorithm in enumerate(algorithms):
+                        btn_x = self.width//2 - btn_width//2
+                        btn_y_pos = btn_y + i * (btn_height + btn_spacing)
+                        btn_rect = pygame.Rect(btn_x, btn_y_pos, btn_width, btn_height)
+                        if btn_rect.collidepoint(mouse_x, mouse_y):
+                            selected_algorithm = algorithm
+                            break
+                    
+                    # Vérifier le bouton retour
+                    if back_rect.collidepoint(mouse_x, mouse_y):
+                        return None
+            
+            self.clock.tick(self.fps)
+        
+        return selected_algorithm
 
     def handle_events(self):
         for event in pygame.event.get():
