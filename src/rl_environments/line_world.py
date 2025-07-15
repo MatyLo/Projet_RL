@@ -1,8 +1,8 @@
 """
-Line World Environment - Environnement en ligne pour l'apprentissage par renforcement.
+Line World Environment
 
 Spécifications:
-- États: [0, 1, 2, 3, 4] (positions sur la ligne)
+- États: [0, 1, 2, 3, 4]
 - Actions: [0, 1] (0: Left, 1: Right)  
 - Récompenses: [-1.0, 0.0, 1.0]
 - États terminaux: [0, 4]
@@ -57,7 +57,7 @@ class LineWorld(BaseEnvironment):
         self.states = [0, 1, 2, 3, 4]
         self.actions = [0, 1]  # Left, Right
         self.terminal_states = [0, 4]
-        self.start_position = 2  # Position de départ fixe
+        self.start_position = 2 
         
         # Matrices pour les algorithmes basés modèle
         self._setup_model_matrices()
