@@ -27,10 +27,10 @@ except ImportError:
     PYGAME_AVAILABLE = False
     print("❌ PyGame non disponible. Installez avec: pip install pygame")
 
-from src.rl_environments.line_world import LineWorld
-from src.rl_algorithms.temporal_difference.q_learning import QLearning
-from utils.agent import Agent
-from utils.human_player import HumanPlayer
+from rl_environments.line_world import LineWorld
+from rl_algorithms.temporal_difference.q_learning import QLearning
+from agent import Agent
+from human_player import HumanPlayer
 
 
 class LineWorldPygameDemo:
@@ -309,7 +309,7 @@ def main():
     
     # 1. Créer et entraîner un agent
     print("1️⃣ Création et entraînement de l'agent...")
-    env = LineWorld(line_length=5, start_position=0, target_position=4)
+    env = LineWorld()
     
     config = {
         'learning_rate': 0.1,
