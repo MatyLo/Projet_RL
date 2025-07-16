@@ -1,6 +1,5 @@
 """
 Line World Environment
-
 Spécifications:
 - États: [0, 1, 2, 3, 4]
 - Actions: [0, 1] (0: Left, 1: Right)  
@@ -19,15 +18,22 @@ Compatible avec TOUS les algorithmes RL :
 
 import numpy as np
 from typing import Tuple, List, Dict, Any
+import sys
+import os
 
-from src.rl_environments.base_environment import BaseEnvironment
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+sys.path.append(os.path.join(project_root, 'src'))
+sys.path.append(os.path.join(project_root, 'utils'))
+
+from rl_environments.base_environment import BaseEnvironment
 
 
 class LineWorld(BaseEnvironment):
     """
     Environnement Line World selon les spécifications du projet.
     
-    Compatible avec TOUS les algorithmes d'apprentissage par renforcement :
+    Méthode différente selon type de modèle, mais compatible avec tous les modèle :
     - Expérience : Q-Learning, SARSA, Monte Carlo (via step/reset)
     - Modèle : Policy Iteration, Value Iteration (via matrices de transition)
     """
@@ -353,7 +359,7 @@ class LineWorld(BaseEnvironment):
         return state in self.terminal_states
 
 
-# Fonction utilitaire pour créer l'environnement standard
+# Fonction pour créer l'environnement standard
 def create_lineworld():
     """Crée l'environnement LineWorld standard."""
     return LineWorld()
