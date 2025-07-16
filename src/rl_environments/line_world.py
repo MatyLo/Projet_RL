@@ -63,7 +63,7 @@ class LineWorld(BaseEnvironment):
         self.states = [0, 1, 2, 3, 4]
         self.actions = [0, 1]  # Left, Right
         self.terminal_states = [0, 4]
-        self.start_position = 2  # Position de départ fixe
+        self.start_position = 2 
         
         # Matrices pour les algorithmes basés modèle
         self._setup_model_matrices()
