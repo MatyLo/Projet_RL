@@ -11,7 +11,7 @@ import pickle
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional, Union, Tuple
 import shutil
 
 
@@ -546,6 +546,57 @@ def quick_load_results(filepath: str) -> Dict[str, Any]:
     """Chargement rapide de résultats."""
     manager = create_file_manager()
     return manager.load_results(filepath)
+
+
+def to_serializable(val):
+    import numpy as np
+    if isinstance(val, np.generic):
+        return val.item()
+    if isinstance(val, (np.ndarray,)):
+        return val.tolist()
+    if isinstance(val, dict):
+        return {k: to_serializable(v) for k, v in val.items()}
+    if isinstance(val, (list, tuple)):
+        return [to_serializable(v) for v in val]
+    return val
+
+
+def save_model_with_description(model, environment_name: str, algorithm_name: str, hyperparameters: dict, metrics: dict, base_output_dir: str = "outputs"):
+    """
+    Sauvegarde un modèle RL et sa description dans un dossier structuré.
+    - Crée outputs/<env>/<algo>_<timestamp>/
+    - Sauvegarde le modèle (model.save_model)
+    - Sauvegarde description.json (algo, env, date, hyperparams, metrics)
+    """
+    import os
+    from datetime import datetime
+    import json
+    import numpy as np
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    folder_name = f"{algorithm_name.lower().replace(' ', '_')}_{timestamp}"
+    output_dir = os.path.join(base_output_dir, environment_name, folder_name)
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Sauvegarde du modèle
+    model_path = os.path.join(output_dir, "model")
+    model.save_model(model_path)
+
+    # Description
+    description = {
+        "algorithm": algorithm_name,
+        "environment": environment_name,
+        "date": timestamp,
+        "hyperparameters": hyperparameters,
+        "metrics": metrics
+    }
+    desc_path = os.path.join(output_dir, "description.json")
+    # Conversion pour JSON
+    description = to_serializable(description)
+    with open(desc_path, "w") as f:
+        json.dump(description, f, indent=2)
+
+    return output_dir
 
 
 if __name__ == "__main__":

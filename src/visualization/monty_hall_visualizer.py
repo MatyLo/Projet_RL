@@ -43,15 +43,19 @@ class MontyHallVisualizer:
     def get_available_algorithms(self) -> List[str]:
         """Détecte automatiquement les algorithmes disponibles."""
         try:
-            from rl_algorithms import QLearning, SARSA, ValueIteration
+            from rl_algorithms import QLearning, SARSA, ValueIteration, MonteCarloES, OffPolicyMCControl, OnPolicyFirstVisitMCControl, PolicyIteration
             algorithms = []
             algorithms.append('Q-Learning')
             algorithms.append('SARSA')
             algorithms.append('Value Iteration')
+            algorithms.append('Monte Carlo ES')
+            algorithms.append('Off-Policy MC Control')
+            algorithms.append('On-Policy First Visit MC Control')
+            algorithms.append('Policy Iteration')
             return algorithms
         except ImportError:
             # Fallback si l'import échoue
-            return ['Q-Learning', 'SARSA', 'Value Iteration']
+            return ['Q-Learning', 'SARSA', 'Value Iteration', 'Monte Carlo ES', 'Off-Policy MC Control', 'On-Policy First Visit MC Control', 'Policy Iteration']
 
     def render_main_menu(self) -> Tuple[str, str]:
         """Affiche le menu principal et retourne le mode et l'algorithme choisis."""
@@ -116,19 +120,28 @@ class MontyHallVisualizer:
                         mode = "agent"
                         # Afficher le menu de sélection d'algorithme
                         algorithm = self.render_algorithm_menu()
+                        if algorithm is None:
+                            mode = None  # Revenir au menu principal si retour
             
             self.clock.tick(self.fps)
         
         return mode, algorithm
 
     def render_algorithm_menu(self) -> str:
-        """Affiche le menu de sélection d'algorithme et retourne l'algorithme choisi."""
+        """Affiche le menu de sélection d'algorithme avec scroll/clavier et retourne l'algorithme choisi."""
         algorithms = self.get_available_algorithms()
+        selected_idx = 0
+        scroll_offset = 0
+        max_visible = 7  # Nombre max d'algos visibles à l'écran
+        btn_width = 350
+        btn_height = 50
+        btn_spacing = 10
+        btn_y = 150
+        running = True
         selected_algorithm = None
         
-        while selected_algorithm is None and self.running:
+        while running and self.running and selected_algorithm is None:
             self.clear_screen()
-            
             # Fond dégradé
             for i in range(self.height):
                 color = (
@@ -137,45 +150,47 @@ class MontyHallVisualizer:
                     int(255 - i * 40 / self.height)
                 )
                 pygame.draw.line(self.screen, color, (0, i), (self.width, i))
-            
             # Titre
             pygame.draw.rect(self.screen, (33, 150, 243), (0, 0, self.width, 100), border_radius=0)
             self.draw_text("SÉLECTION DE L'ALGORITHME", self.width//2 - 250, 20, self.WHITE, self.large_font)
             self.draw_text("Choisissez l'algorithme d'apprentissage", self.width//2 - 200, 60, self.WHITE, self.font)
-            
-            # Boutons d'algorithmes
-            btn_width = 250
-            btn_height = 70
-            btn_y = 150
-            btn_spacing = 20
-            
+            # Affichage des algos avec scroll
+            visible_algos = algorithms[scroll_offset:scroll_offset+max_visible]
             mouse_x, mouse_y = pygame.mouse.get_pos()
-            
-            for i, algorithm in enumerate(algorithms):
+            for i, algorithm in enumerate(visible_algos):
                 btn_x = self.width//2 - btn_width//2
                 btn_y_pos = btn_y + i * (btn_height + btn_spacing)
                 btn_rect = pygame.Rect(btn_x, btn_y_pos, btn_width, btn_height)
-                
-                # Couleur selon le survol
-                if btn_rect.collidepoint(mouse_x, mouse_y):
+                is_selected = (scroll_offset + i) == selected_idx
+                # Couleur selon sélection
+                if is_selected:
                     btn_color = (76, 175, 80)
+                elif btn_rect.collidepoint(mouse_x, mouse_y):
+                    btn_color = (33, 150, 243)
                 else:
                     btn_color = (56, 142, 60)
-                
-                pygame.draw.rect(self.screen, btn_color, btn_rect, border_radius=15)
-                self.draw_text(algorithm, btn_x + 20, btn_y_pos + 20, self.WHITE, self.font)
-            
+                pygame.draw.rect(self.screen, btn_color, btn_rect, border_radius=12)
+                self.draw_text(algorithm, btn_x + 20, btn_y_pos + 12, self.WHITE, self.small_font)
+            # Flèches de scroll
+            if scroll_offset > 0:
+                pygame.draw.polygon(self.screen, self.PURPLE, [
+                    (self.width//2, btn_y-30),
+                    (self.width//2-20, btn_y-10),
+                    (self.width//2+20, btn_y-10)
+                ])
+            if scroll_offset + max_visible < len(algorithms):
+                pygame.draw.polygon(self.screen, self.PURPLE, [
+                    (self.width//2, btn_y + max_visible*(btn_height+btn_spacing) + 10),
+                    (self.width//2-20, btn_y + max_visible*(btn_height+btn_spacing) - 10),
+                    (self.width//2+20, btn_y + max_visible*(btn_height+btn_spacing) - 10)
+                ])
             # Bouton retour
             back_rect = pygame.Rect(50, self.height - 80, 120, 50)
             back_color = (244, 67, 54) if back_rect.collidepoint(mouse_x, mouse_y) else (211, 47, 47)
             pygame.draw.rect(self.screen, back_color, back_rect, border_radius=10)
             self.draw_text("Retour", back_rect.x + 20, back_rect.y + 15, self.WHITE, self.font)
-            
             # Instructions
-            self.draw_text("Cliquez sur un algorithme pour le sélectionner", self.width//2 - 250, self.height - 120, self.BLACK, self.font)
-            
             self.update_display()
-            
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
@@ -183,24 +198,43 @@ class MontyHallVisualizer:
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         return None
-                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    mouse_x, mouse_y = event.pos
-                    
-                    # Vérifier les boutons d'algorithmes
-                    for i, algorithm in enumerate(algorithms):
-                        btn_x = self.width//2 - btn_width//2
-                        btn_y_pos = btn_y + i * (btn_height + btn_spacing)
-                        btn_rect = pygame.Rect(btn_x, btn_y_pos, btn_width, btn_height)
-                        if btn_rect.collidepoint(mouse_x, mouse_y):
-                            selected_algorithm = algorithm
-                            break
-                    
-                    # Vérifier le bouton retour
-                    if back_rect.collidepoint(mouse_x, mouse_y):
-                        return None
-            
+                    elif event.key == pygame.K_UP:
+                        if selected_idx > 0:
+                            selected_idx -= 1
+                            if selected_idx < scroll_offset:
+                                scroll_offset -= 1
+                    elif event.key == pygame.K_DOWN:
+                        if selected_idx < len(algorithms)-1:
+                            selected_idx += 1
+                            if selected_idx >= scroll_offset + max_visible:
+                                scroll_offset += 1
+                    elif event.key == pygame.K_RETURN:
+                        selected_algorithm = algorithms[selected_idx]
+                        break
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 4:  # Molette haut
+                        if selected_idx > 0:
+                            selected_idx -= 1
+                            if selected_idx < scroll_offset:
+                                scroll_offset -= 1
+                    elif event.button == 5:  # Molette bas
+                        if selected_idx < len(algorithms)-1:
+                            selected_idx += 1
+                            if selected_idx >= scroll_offset + max_visible:
+                                scroll_offset += 1
+                    elif event.button == 1:
+                        # Clic sur un algo
+                        for i, algorithm in enumerate(visible_algos):
+                            btn_x = self.width//2 - btn_width//2
+                            btn_y_pos = btn_y + i * (btn_height + btn_spacing)
+                            btn_rect = pygame.Rect(btn_x, btn_y_pos, btn_width, btn_height)
+                            if btn_rect.collidepoint(mouse_x, mouse_y):
+                                selected_algorithm = algorithms[scroll_offset + i]
+                                break
+                        # Clic sur retour
+                        if back_rect.collidepoint(mouse_x, mouse_y):
+                            return None
             self.clock.tick(self.fps)
-        
         return selected_algorithm
 
     def handle_events(self):
@@ -216,12 +250,16 @@ class MontyHallVisualizer:
                     return "step"
         return None
 
-    def draw_text(self, text: str, x: int, y: int, color: Tuple[int, int, int] = None, font=None):
+    def draw_text(self, text: str, x: int, y: int, color: Tuple[int, int, int] = None, font=None, background: Tuple[int, int, int] = None, highlight: bool = False):
         if color is None:
             color = self.BLACK
         if font is None:
             font = self.font
-        text_surface = font.render(text, True, color)
+        text_surface = font.render(text, True, color, background)
+        if highlight:
+            # Dessiner un rectangle de surbrillance derrière le texte
+            rect = text_surface.get_rect(topleft=(x-10, y-5))
+            pygame.draw.rect(self.screen, (255, 255, 180), rect, border_radius=8)
         self.screen.blit(text_surface, (x, y))
 
     def clear_screen(self):
@@ -315,6 +353,8 @@ class MontyHallVisualizer:
             pygame.draw.rect(self.screen, (245, 245, 245), (0, episode_y, self.width, 80), border_radius=0)
             for idx, (key, value) in enumerate(episode_info.items()):
                 self.draw_text(f"{key}: {value}", 30 + idx*220, episode_y + 25, self.PURPLE, self.small_font)
+        if hasattr(self, 'ia_waiting') and self.ia_waiting:
+            self.draw_text("L'IA réfléchit...", self.width//2-120, 520, self.RED, self.font, highlight=True)
         self.update_display()
 
     def get_human_action(self, env) -> int:

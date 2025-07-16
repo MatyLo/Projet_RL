@@ -82,28 +82,33 @@ class ValueIteration(BaseAlgorithm):
             
             for state in range(self.state_space_size):
                 v_old = self.value_function[state]
-                
-                # Calculer Q-values pour cet état
+                # Utiliser uniquement les actions valides pour cet état
+                if hasattr(environment, 'get_valid_actions'):
+                    valid_actions = environment.get_valid_actions(state)
+                elif hasattr(environment, 'valid_actions'):
+                    valid_actions = environment.valid_actions if isinstance(environment.valid_actions, list) else list(environment.valid_actions)
+                else:
+                    valid_actions = range(self.action_space_size)
                 q_values = []
-                for action in range(self.action_space_size):
+                for action in valid_actions:
                     q_value = 0
-                    
                     # Obtenir les probabilités de transition
                     transitions = environment.get_transition_probabilities(state, action)
-                    
                     for next_state, prob in transitions.items():
                         reward = environment.get_reward_function(state, action, next_state)
                         q_value += prob * (reward + self.gamma * self.value_function[next_state])
-                    
                     q_values.append(q_value)
                     self.q_function[state, action] = q_value
-                
                 # Mettre à jour la fonction de valeur
-                self.value_function[state] = max(q_values)
-                
-                # Mettre à jour la politique
-                self.policy[state] = np.argmax(q_values)
-                
+                if q_values:
+                    self.value_function[state] = max(q_values)
+                    # Mettre à jour la politique
+                    # On retrouve l'action correspondant à la valeur max
+                    best_action = valid_actions[np.argmax(q_values)]
+                    self.policy[state] = best_action
+                else:
+                    # Aucun action valide, garder la valeur précédente
+                    self.value_function[state] = v_old
                 # Calculer le delta pour la convergence
                 delta = max(delta, abs(v_old - self.value_function[state]))
             

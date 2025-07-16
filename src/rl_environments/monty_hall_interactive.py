@@ -118,4 +118,24 @@ class MontyHallInteractive(BaseEnvironment):
             p[1, a, 2, 0] = 0.5
             p[1, a, 2, 1] = 0.5
         p[2, 0, 2, 0] = 1.0
-        return p 
+        return p
+    def get_reward_function(self, state: int, action: int, next_state: int) -> float:
+        # Retourne 0.0 si action invalide dans l'état donné
+        valid_actions = []
+        if state == 0:
+            valid_actions = [0, 1, 2]
+        elif state == 1:
+            valid_actions = [0, 1]
+        else:
+            valid_actions = []
+        if action not in valid_actions:
+            return 0.0
+        # Sinon, comportement normal
+        current_state_backup = self.state
+        self.state = state
+        try:
+            _, reward, _, _ = self.step(action)
+        except Exception:
+            reward = 0.0
+        self.state = current_state_backup
+        return reward 
