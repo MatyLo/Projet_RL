@@ -12,6 +12,12 @@ Placement: utils/human_player.py
 import sys
 from typing import Dict, List, Any, Optional
 import time
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+sys.path.append(os.path.join(project_root, 'src'))
+sys.path.append(os.path.join(project_root, 'utils'))
 
 try:
     import pygame
@@ -20,7 +26,7 @@ except ImportError:
     PYGAME_AVAILABLE = False
     print("⚠️ PyGame non disponible. Mode console uniquement.")
 
-from src.rl_environments.base_environment import BaseEnvironment
+from rl_environments.base_environment import BaseEnvironment
 
 
 class HumanPlayer:

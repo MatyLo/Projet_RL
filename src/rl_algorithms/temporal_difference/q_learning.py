@@ -15,8 +15,16 @@ import pickle
 import json
 import time
 from typing import Dict, Any
+import sys
+import os
 
-from src.rl_algorithms.base_algorithm import BaseAlgorithm
+# Ajout des chemins
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+sys.path.append(os.path.join(project_root, 'src'))
+sys.path.append(os.path.join(project_root, 'utils'))
+
+from rl_algorithms.base_algorithm import BaseAlgorithm
 
 
 class QLearning(BaseAlgorithm):
