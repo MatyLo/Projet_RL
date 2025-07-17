@@ -7,6 +7,7 @@ class PolicyIteration(BaseAlgorithm):
     Implémentation de l'algorithme Policy Iteration.
     Compatible avec tous les environnements BaseEnvironment.
     """
+    
     def __init__(self, environment: Any, discount_factor: float = 0.999999,
                  theta: float = 0.00001, max_iterations: int = 1000):
         state_space_size = environment.state_space_size if hasattr(environment, 'state_space_size') else len(environment.get_state_space())
@@ -26,6 +27,7 @@ class PolicyIteration(BaseAlgorithm):
         self.V = np.random.random((len(self.S),))
         self.V[self.T] = 0.0
         self.policy = np.ones((len(self.S), len(self.A))) / len(self.A)  # Politique uniforme au départ
+    
     def policy_evaluation(self) -> None:
         while True:
             delta = 0.0
@@ -43,6 +45,7 @@ class PolicyIteration(BaseAlgorithm):
                 delta = max(delta, abs(v - self.V[s]))
             if delta < self.theta:
                 break
+    
     def policy_improvement(self) -> bool:
         policy_stable = True
         for s in self.S:
@@ -64,6 +67,7 @@ class PolicyIteration(BaseAlgorithm):
             self.policy[s] = np.zeros_like(self.policy[s])
             self.policy[s][best_a] = 1.0
         return policy_stable
+    
     def train(self, n_episodes: int = None) -> Dict[str, Any]:
         iterations = 0
         policy_stable = False
@@ -76,10 +80,13 @@ class PolicyIteration(BaseAlgorithm):
             "converged": policy_stable,
             "final_value_function": self.V.copy()
         }
+    
     def get_action(self, state: int) -> int:
         return int(np.argmax(self.policy[state]))
+    
     def save(self, path: str) -> None:
         np.savez(path, policy=self.policy, value_function=self.V)
+    
     def load(self, path: str) -> None:
         data = np.load(path)
         self.policy = data['policy']

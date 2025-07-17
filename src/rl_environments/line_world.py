@@ -27,7 +27,7 @@ project_root = os.path.dirname(current_dir)
 sys.path.append(os.path.join(project_root, 'src'))
 sys.path.append(os.path.join(project_root, 'utils'))
 
-from rl_environments.base_environment import BaseEnvironment
+from src.rl_environments.base_environment import BaseEnvironment
 
 
 class LineWorld(BaseEnvironment):

@@ -5,11 +5,12 @@ Version simplifiée - focus sur l'essentiel pour faciliter la compréhension.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional, Union, Tuple
 import numpy as np
 import time
 import json
 import pickle
+import matplotlib.pyplot as plt
 
 
 class BaseAlgorithm(ABC):
@@ -177,3 +178,74 @@ class BaseAlgorithm(ABC):
         status = "entraîné" if self.is_trained else "non entraîné"
         episodes = len(self.training_history)
         return f"{self.algo_name}({status}, {episodes} épisodes)"
+
+    def plot_training_curves(self, figsize: Tuple[int, int] = (15, 10)) -> None:
+        """Affiche les courbes d'entraînement."""
+        if not hasattr(self, 'training_history') or not self.training_history:
+            print("Aucun historique d'entraînement disponible. Entraînez d'abord l'algorithme.")
+            return
+        
+        # Extraction des données depuis training_history
+        rewards = [episode['reward'] for episode in self.training_history]
+        steps = [episode['steps'] for episode in self.training_history]
+        episodes = [episode['episode'] for episode in self.training_history]
+        
+        fig, axes = plt.subplots(2, 2, figsize=figsize)
+        
+        # Récompenses par épisode
+        axes[0, 0].plot(episodes, rewards, alpha=0.7, linewidth=1)
+        axes[0, 0].set_title('Récompenses par épisode')
+        axes[0, 0].set_xlabel('Épisode')
+        axes[0, 0].set_ylabel('Récompense')
+        axes[0, 0].grid(True)
+        
+        # Moyenne mobile des récompenses
+        if len(rewards) > 10:
+            window = min(100, len(rewards) // 10)
+            moving_avg = np.convolve(rewards, np.ones(window)/window, mode='valid')
+            # Ajustement des indices pour la moyenne mobile
+            moving_episodes = episodes[window-1:]
+            
+            axes[0, 1].plot(episodes, rewards, alpha=0.3, color='lightblue', label='Récompenses')
+            axes[0, 1].plot(moving_episodes, moving_avg, color='red', linewidth=2, label=f'Moyenne mobile ({window})')
+            axes[0, 1].set_title(f'Moyenne mobile (fenêtre {window})')
+            axes[0, 1].set_xlabel('Épisode')
+            axes[0, 1].set_ylabel('Récompense moyenne')
+            axes[0, 1].legend()
+            axes[0, 1].grid(True)
+        
+        # Longueur des épisodes
+        axes[1, 0].plot(episodes, steps, alpha=0.7, linewidth=1)
+        axes[1, 0].set_title('Longueur des épisodes')
+        axes[1, 0].set_xlabel('Épisode')
+        axes[1, 0].set_ylabel('Nombre de pas')
+        axes[1, 0].grid(True)
+        
+        # Analyse de convergence (variance glissante)
+        if len(rewards) > 50:
+            window_var = min(50, len(rewards) // 20)
+            variance = []
+            var_episodes = []
+            
+            for i in range(window_var, len(rewards)):
+                window_rewards = rewards[i-window_var:i]
+                variance.append(np.var(window_rewards))
+                var_episodes.append(episodes[i])
+            
+            axes[1, 1].plot(var_episodes, variance, color='green', linewidth=2)
+            axes[1, 1].set_title(f'Variance des récompenses (fenêtre {window_var})')
+            axes[1, 1].set_xlabel('Épisode')
+            axes[1, 1].set_ylabel('Variance')
+            axes[1, 1].grid(True)
+        else:
+            # Si pas assez de données pour la variance, afficher les pertes si disponibles
+            if hasattr(self, 'metrics') and self.metrics.get('training_losses'):
+                axes[1, 1].plot(self.metrics['training_losses'])
+                axes[1, 1].set_title('Perte d\'entraînement')
+                axes[1, 1].set_xlabel('Épisode')
+                axes[1, 1].set_ylabel('Perte')
+                axes[1, 1].grid(True)
+        
+        plt.tight_layout()
+        plt.show()
+    

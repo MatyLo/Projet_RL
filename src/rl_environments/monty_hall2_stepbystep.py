@@ -1,7 +1,7 @@
 import numpy as np
 import random
 from typing import List, Tuple, Dict, Any, Optional
-from rl_environments.base_environment import BaseEnvironment
+from src.rl_environments.base_environment import BaseEnvironment
 
 class MontyHall2StepByStep(BaseEnvironment):
     """

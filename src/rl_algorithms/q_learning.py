@@ -8,7 +8,7 @@ dans des environnements avec modèle inconnu.
 import numpy as np
 import json
 import pickle
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional,Tuple
 from .base_algorithm import BaseAlgorithm
 
 
@@ -95,9 +95,11 @@ class QLearning(BaseAlgorithm):
                 # Sélectionner une action epsilon-greedy parmi les actions valides
                 valid_actions = environment.valid_actions
                 if np.random.random() < self.epsilon:
+                    #print('aaaaaaa')
                     action = np.random.choice(valid_actions)
                 else:
                     # Action gloutonne parmi les actions valides
+                    #print('bbbb')
                     q_values = [self.q_function[state, a] for a in valid_actions]
                     best_action_idx = np.argmax(q_values)
                     action = valid_actions[best_action_idx]
@@ -112,7 +114,9 @@ class QLearning(BaseAlgorithm):
                 
                 if not done:
                     # Q-Learning: utiliser le maximum des Q-values du prochain état
-                    max_next_q = np.max(self.q_function[next_state])
+                    valid_next_actions = environment.valid_actions
+                    max_next_q = np.max([self.q_function[next_state, a] for a in valid_next_actions])
+                    #max_next_q = np.max(self.q_function[next_state])
                     td_target = reward + self.gamma * max_next_q
                 else:
                     # Épisode terminé
@@ -228,3 +232,50 @@ class QLearning(BaseAlgorithm):
         except Exception as e:
             print(f"Erreur lors du chargement: {e}")
             return False 
+
+    def visualize_q_table(self, precision: int = 2):
+        """
+        Affiche la Q-table de manière lisible.
+        
+        Args:
+            precision: Nombre de décimales
+            
+        Returns:
+            String formaté de la Q-table
+        """
+        if not self.is_trained:
+            return "❌ Algorithme non entraîné"
+        
+        output = f"\n{'='*50}\n"
+        output += f"Q-TABLE - {self.algo_name}\n"
+        output += f"{'='*50}\n"
+        output += f"{'État':<6}"
+        
+        for action in range(self.action_space_size):
+            output += f"Action{action:<8}"
+        output += f"{'Politique':<10}{'Valeur':<10}\n"
+        output += "-" * 50 + "\n"
+        
+        for state in range(self.state_space_size):
+            output += f"{state:<6}"
+            for action in range(self.action_space_size):
+                q_val = self.q_function[state, action]
+                output += f"{q_val:<12.{precision}f} "
+            
+            best_action = self.policy[state] if self.policy is not None else np.argmax(self.q_function[state])
+            state_value = self.value_function[state] if self.value_function is not None else np.max(self.q_function[state])
+            output += f"{best_action:<10}{state_value:<10.{precision}f}\n"
+        
+        output += "=" * 50 + "\n"
+        return output
+    
+    def reset_training(self):
+        """Remet à zéro l'entraînement."""
+        self.q_function = np.zeros((self.state_space_size, self.action_space_size))
+        self.policy = None
+        self.value_function = None
+        self.epsilon = self.initial_epsilon
+        self.is_trained = False
+        self.training_history = []
+
+    
