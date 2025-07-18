@@ -1,0 +1,28 @@
+{
+  "algorithm": "Dyna-Q",
+  "environment": "mh2",
+  "date": "20250718_171527",
+  "hyperparameters": {
+    "learning_rate": null,
+    "gamma": 0.9,
+    "epsilon": null
+  },
+  "metrics": {
+    "iterations": 2,
+    "final_delta": 0,
+    "converged": true,
+    "max_value": 1.0,
+    "convergence_history": [
+      {
+        "iteration": 0,
+        "delta": 1.0,
+        "max_value": 1.0
+      },
+      {
+        "iteration": 1,
+        "delta": 0,
+        "max_value": 1.0
+      }
+    ]
+  }
+}

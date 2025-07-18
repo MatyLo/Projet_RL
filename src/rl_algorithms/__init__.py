@@ -10,6 +10,7 @@ from .monte_carlo_es import MonteCarloES
 from .off_policy_mc_control import OffPolicyMCControl
 from .on_policy_first_visit_mc_control import OnPolicyFirstVisitMCControl
 from .policy_iteration import PolicyIteration
+from .dyna_q import DynaQ
 
 __all__ = [
     'BaseAlgorithm',

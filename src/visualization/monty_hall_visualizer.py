@@ -44,6 +44,7 @@ class MontyHallVisualizer:
         """Détecte automatiquement les algorithmes disponibles."""
         try:
             from rl_algorithms import QLearning, SARSA, ValueIteration, MonteCarloES, OffPolicyMCControl, OnPolicyFirstVisitMCControl, PolicyIteration
+            from rl_algorithms.dyna_q import DynaQ
             algorithms = []
             algorithms.append('Q-Learning')
             algorithms.append('SARSA')
@@ -52,10 +53,11 @@ class MontyHallVisualizer:
             algorithms.append('Off-Policy MC Control')
             algorithms.append('On-Policy First Visit MC Control')
             algorithms.append('Policy Iteration')
+            algorithms.append('Dyna-Q')
             return algorithms
         except ImportError:
             # Fallback si l'import échoue
-            return ['Q-Learning', 'SARSA', 'Value Iteration', 'Monte Carlo ES', 'Off-Policy MC Control', 'On-Policy First Visit MC Control', 'Policy Iteration']
+            return ['Q-Learning', 'SARSA', 'Value Iteration', 'Monte Carlo ES', 'Off-Policy MC Control', 'On-Policy First Visit MC Control', 'Policy Iteration', 'Dyna-Q']
 
     def render_main_menu(self) -> Tuple[str, str]:
         """Affiche le menu principal et retourne le mode et l'algorithme choisis."""
