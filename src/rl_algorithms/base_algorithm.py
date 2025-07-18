@@ -249,3 +249,99 @@ class BaseAlgorithm(ABC):
         plt.tight_layout()
         plt.show()
     
+    #Nouvelles méthodes ajoutées
+    def get_value_function(self):
+        """
+        Retourne la fonction de valeur apprise.
+        
+        Returns:
+            Copy de la fonction de valeur ou None si non entraîné
+        """
+        if not self.is_trained or self.value_function is None:
+            return None
+        
+        return self.value_function.copy()
+    
+    def update_value_function(self):
+        """
+        Met à jour la fonction de valeur V(s) = max_a Q(s, a).
+        
+        Méthode par défaut qui peut être redéfinie par les sous-classes.
+        """
+        if self.q_function is not None:
+            if isinstance(self.q_function, np.ndarray):
+                self.value_function = np.max(self.q_function, axis=1)
+            else:
+                # Pour les dictionnaires Q
+                self.value_function = np.zeros(self.state_space_size)
+                for state in range(self.state_space_size):
+                    q_values = [self.q_function.get((state, action), 0.0) 
+                               for action in range(self.action_space_size)]
+                    self.value_function[state] = np.max(q_values)
+    
+    def reset_training(self):
+        """
+        Remet à zéro l'entraînement.
+        
+        Méthode par défaut qui peut être redéfinie par les sous-classes.
+        """
+        self.is_trained = False
+        self.training_history = []
+        self.policy = None
+        self.q_function = None
+        self.value_function = None
+    
+    def visualize_q_table(self, precision: int = 2):
+        """
+        Affiche la Q-table de manière lisible.
+        
+        Args:
+            precision: Nombre de décimales
+            
+        Returns:
+            String formaté de la Q-table
+        """
+        if not self.is_trained or self.q_function is None:
+            return "❌ Algorithme non entraîné"
+        
+        output = f"\n{'='*50}\n"
+        output += f"Q-TABLE - {self.algo_name}\n"
+        output += f"{'='*50}\n"
+        output += f"{'État':<6}"
+        
+        for action in range(self.action_space_size):
+            output += f"Action{action:<8}"
+        output += f"{'Politique':<10}{'Valeur':<10}\n"
+        output += "-" * 50 + "\n"
+        
+        for state in range(self.state_space_size):
+            output += f"{state:<6}"
+            
+            # Gestion des Q-functions en array ou dict
+            if isinstance(self.q_function, np.ndarray):
+                q_values = self.q_function[state]
+                best_action = np.argmax(q_values)
+                state_value = np.max(q_values)
+            else:
+                q_values = [self.q_function.get((state, action), 0.0) 
+                           for action in range(self.action_space_size)]
+                best_action = np.argmax(q_values)
+                state_value = np.max(q_values)
+            
+            # Affichage des Q-values
+            for action in range(self.action_space_size):
+                if isinstance(self.q_function, np.ndarray):
+                    q_val = self.q_function[state, action]
+                else:
+                    q_val = self.q_function.get((state, action), 0.0)
+                output += f"{q_val:<12.{precision}f} "
+            
+            # Politique et valeur
+            if self.value_function is not None:
+                state_value = self.value_function[state]
+            
+            output += f"{best_action:<10}{state_value:<10.{precision}f}\n"
+        
+        output += "=" * 50 + "\n"
+        return output
+    

@@ -53,6 +53,9 @@ class QLearning(BaseAlgorithm):
         
         # Politique dérivée de Q
         self.policy = None
+
+        # Initialiser la fonction de valeur V(s) = max_a Q(s, a)
+        self.value_function = np.zeros(state_space_size)
     
     @classmethod
     def from_config(cls, config: Dict[str, Any], environment):
@@ -66,6 +69,10 @@ class QLearning(BaseAlgorithm):
             epsilon_decay=config.get('epsilon_decay', 0.995),
             epsilon_min=config.get('epsilon_min', 0.01)
         )
+
+    def update_value_function(self):
+        """Met à jour la fonction de valeur V(s) = max_a Q(s, a)."""
+        self.value_function = np.max(self.q_function, axis=1)
     
     def train(self, environment, num_episodes: int, verbose: bool = False):
         """
@@ -92,6 +99,7 @@ class QLearning(BaseAlgorithm):
             
             done = False
             while not done:
+                #print('ffff')
                 # Sélectionner une action epsilon-greedy parmi les actions valides
                 valid_actions = environment.valid_actions
                 if np.random.random() < self.epsilon:
@@ -126,8 +134,11 @@ class QLearning(BaseAlgorithm):
                 td_error = td_target - current_q
                 self.q_function[state, action] = current_q + self.learning_rate * td_error
                 
+                # Mettre à jour la fonction de valeur pour cet état
+                self.value_function[state] = np.max(self.q_function[state])
+
                 state = next_state
-            
+            #print('done')
             # Mettre à jour epsilon
             self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
             
@@ -140,8 +151,9 @@ class QLearning(BaseAlgorithm):
                 avg_reward = np.mean(episode_rewards[-100:])
                 print(f"Épisode {episode + 1}: reward moyen = {avg_reward:.3f}, epsilon = {self.epsilon:.3f}")
         
-        # Mettre à jour la politique
+        # Mettre à jour la politique et la fonction de valeur
         self.policy = np.argmax(self.q_function, axis=1)
+        self.update_value_function()  # Mise à jour finale complète
         self.is_trained = True
         
         if verbose:
@@ -174,6 +186,13 @@ class QLearning(BaseAlgorithm):
         
         return self.policy.copy()
     
+    def get_value_function(self):
+        """Retourne la fonction de valeur apprise."""
+        if not self.is_trained:
+            return None
+        
+        return self.value_function.copy()
+    
     def save_model(self, filepath: str) -> bool:
         """Sauvegarde le modèle entraîné."""
         try:
@@ -188,6 +207,7 @@ class QLearning(BaseAlgorithm):
                 'epsilon_min': self.epsilon_min,
                 'is_trained': self.is_trained,
                 'q_function': self.q_function,
+                'value_function': self.value_function,
                 'policy': self.policy,
                 'training_history': self.training_history
             }
@@ -198,6 +218,7 @@ class QLearning(BaseAlgorithm):
                 json_data = model_data.copy()
                 json_data['q_function'] = self.q_function.tolist()
                 json_data['policy'] = self.policy.tolist() if self.policy is not None else None
+                json_data['value_function'] = self.value_function.tolist()
                 json.dump(json_data, f, indent=2)
             
             with open(filepath, 'wb') as f:
@@ -223,6 +244,7 @@ class QLearning(BaseAlgorithm):
             # Charger les données
             self.q_function = model_data['q_function']
             self.policy = model_data['policy']
+            self.value_function = model_data['value_function']
             self.is_trained = model_data['is_trained']
             self.epsilon = model_data['epsilon']
             self.training_history = model_data.get('training_history', [])
@@ -273,7 +295,7 @@ class QLearning(BaseAlgorithm):
         """Remet à zéro l'entraînement."""
         self.q_function = np.zeros((self.state_space_size, self.action_space_size))
         self.policy = None
-        self.value_function = None
+        self.value_function = np.zeros(self.state_space_size)
         self.epsilon = self.initial_epsilon
         self.is_trained = False
         self.training_history = []

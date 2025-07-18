@@ -22,6 +22,7 @@ class MontyHall2StepByStep(BaseEnvironment):
         self.done = False
         self.last_eliminated = None
         self.choice_at_3 = None
+    
     def reset(self) -> int:
         self.state = 0
         self.winning_door = random.randint(0, self.n_doors - 1)
@@ -35,6 +36,7 @@ class MontyHall2StepByStep(BaseEnvironment):
         self.last_eliminated = None
         self.choice_at_3 = None
         return self.state
+    
     def step(self, action: int) -> Tuple[int, float, bool, Dict[str, Any]]:
         info = {}
         reward = 0.0
@@ -86,9 +88,11 @@ class MontyHall2StepByStep(BaseEnvironment):
             return self.state, reward, True, info
         else:
             return self.state, reward, True, info
+    
     def _eliminate_one_door(self) -> int:
         candidates = [d for d in self.remaining_doors if d != self.agent_choice and d != self.winning_door]
         return random.choice(candidates)
+    
     @property
     def valid_actions(self) -> List[int]:
         if self.state in [0, 1]:
@@ -97,12 +101,15 @@ class MontyHall2StepByStep(BaseEnvironment):
             return [0, 1]
         else:
             return []
+    
     @property
     def action_space_size(self) -> int:
         return self.n_doors
+    
     @property
     def state_space_size(self) -> int:
         return 5
+    
     def render(self, mode: str = 'console'):
         if mode == 'console':
             print(f"Portes restantes: {self.remaining_doors}")
@@ -111,6 +118,7 @@ class MontyHall2StepByStep(BaseEnvironment):
             if self.state == 4:
                 print(f"Porte gagnante: {self.winning_door}")
                 print(f"Gagné ? {self.final_choice == self.winning_door}")
+    
     def get_state_description(self, state: int) -> str:
         descriptions = {
             0: "Choix initial de porte",
@@ -120,14 +128,19 @@ class MontyHall2StepByStep(BaseEnvironment):
             4: "Partie terminée"
         }
         return descriptions.get(state, "État inconnu")
+    
     def get_state_space(self):
         return list(range(self.state_space_size))
+    
     def get_action_space(self):
         return list(range(self.action_space_size))
+    
     def get_rewards(self):
         return [0.0, 1.0]
+    
     def get_terminal_states(self):
         return [4]
+    
     def get_transition_matrix(self):
         p = np.zeros((5, 5, 5, 2))
         for a in range(5):
