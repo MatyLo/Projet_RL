@@ -1,11 +1,11 @@
 """
-Algorithme Dyna-Q pour l'apprentissage avec planification.
+Algorithme Dyna-Q
 
-Version harmonisée avec l'architecture du projet :
+architecture :
 - Hérite de BaseAlgorithm
-- Interface from_config() standardisée
-- Méthodes select_action() et save/load_model compatibles
-- train(environment, num_episodes, verbose) avec signature cohérente
+- Interface from_config()
+- Méthodes select_action() et save/load_model
+- train(environment, num_episodes, verbose)
 - Combine Q-Learning avec planification par modèle
 """
 

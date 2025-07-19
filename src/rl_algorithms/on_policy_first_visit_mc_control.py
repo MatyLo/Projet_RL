@@ -1,11 +1,11 @@
 """
-On-Policy First Visit Monte Carlo Control pour l'apprentissage par renforcement.
+On-Policy First Visit Monte Carlo Control
 
-Version harmonisée avec l'architecture du projet :
+architecture projet :
 - Hérite de BaseAlgorithm
-- Interface from_config() standardisée
-- Méthodes select_action() et save/load_model compatibles
-- train(environment, num_episodes, verbose) avec signature cohérente
+- Interface from_config()
+- Méthodes select_action() et save/load_model
+- train(environment, num_episodes, verbose)
 """
 
 import numpy as np

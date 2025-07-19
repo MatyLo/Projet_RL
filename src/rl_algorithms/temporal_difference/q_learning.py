@@ -1,5 +1,5 @@
 """
-Q-Learning Algorithm - Implémentation simplifiée
+Q-Learning Algorithm
 
 Q-Learning utilise la mise à jour:
 Q(s,a) ← Q(s,a) + α[r + γ max_a' Q(s',a') - Q(s,a)]
@@ -29,7 +29,7 @@ from src.rl_algorithms.base_algorithm import BaseAlgorithm
 
 class QLearning(BaseAlgorithm):
     """
-    Implémentation Q-Learning simplifiée.
+    Implémentation Q-Learning.
     
     Exemple d'utilisation:
     >>> config = {'learning_rate': 0.1, 'gamma': 0.9, 'epsilon': 0.1}
@@ -142,7 +142,7 @@ class QLearning(BaseAlgorithm):
         
         if verbose:
             results = self.get_training_results()
-            print(f"✅ Entraînement terminé en {training_time:.1f}s")
+            print(f" Entraînement terminé en {training_time:.1f}s")
             print(f"Récompense moyenne: {results['avg_reward']:.2f}")
         
         return self.get_training_results()
@@ -261,7 +261,7 @@ class QLearning(BaseAlgorithm):
             return True
             
         except Exception as e:
-            print(f"❌ Erreur sauvegarde: {e}")
+            print(f" Erreur sauvegarde: {e}")
             return False
     
     def load_model(self, filepath: str) -> bool:
@@ -320,7 +320,7 @@ class QLearning(BaseAlgorithm):
             String formaté de la Q-table
         """
         if not self.is_trained:
-            return "❌ Algorithme non entraîné"
+            return " Algorithme non entraîné"
         
         output = f"\n{'='*50}\n"
         output += f"Q-TABLE - {self.algo_name}\n"

@@ -1,5 +1,5 @@
 """
-Algorithme SARSA (State-Action-Reward-State-Action) pour l'apprentissage par renforcement.
+Algorithme SARSA (State-Action-Reward-State-Action)
 
 Implémente l'algorithme SARSA on-policy pour l'apprentissage de politiques
 dans des environnements avec modèle inconnu.

@@ -1,11 +1,11 @@
 """
-Monte Carlo Exploring Starts (MC ES) pour l'apprentissage par renforcement.
+Monte Carlo Exploring Starts (MC ES)
 
-Version harmonisée avec l'architecture du projet :
+architecture :
 - Hérite de BaseAlgorithm
-- Interface from_config() standardisée
-- Méthodes select_action() et save/load_model compatibles
-- train(environment, num_episodes, verbose) avec signature cohérente
+- Interface from_config()
+- Méthodes select_action() et save/load_model
+- train(environment, num_episodes, verbose)
 """
 
 import numpy as np
@@ -19,7 +19,7 @@ from .base_algorithm import BaseAlgorithm
 
 class MonteCarloES(BaseAlgorithm):
     """
-    Monte Carlo Exploring Starts harmonisé.
+    Monte Carlo Exploring Starts
     
     Algorithme d'apprentissage par renforcement qui utilise des starts exploratoires
     pour assurer l'exploration de toutes les paires état-action.

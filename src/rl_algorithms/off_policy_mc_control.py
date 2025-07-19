@@ -1,12 +1,11 @@
 """
-Off-Policy Monte Carlo Control pour l'apprentissage par renforcement.
+Off-Policy Monte Carlo Control
 
-Version harmonisée avec l'architecture du projet :
+architecture :
 - Hérite de BaseAlgorithm
-- Interface from_config() standardisée
-- Méthodes select_action() et save/load_model compatibles
-- train(environment, num_episodes, verbose) avec signature cohérente
-- Utilise importance sampling pour l'apprentissage off-policy
+- Interface from_config() 
+- Méthodes select_action() et save/load_model
+- train(environment, num_episodes, verbose)
 """
 
 import numpy as np

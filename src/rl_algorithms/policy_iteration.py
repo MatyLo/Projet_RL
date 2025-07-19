@@ -1,11 +1,11 @@
 """
-Algorithme Policy Iteration pour l'apprentissage par renforcement.
+Algorithme Policy Iteration
 
-Version harmonisée avec l'architecture du projet :
+Architecture :
 - Hérite de BaseAlgorithm
-- Interface from_config() standardisée
-- Méthodes select_action() et save/load_model compatibles
-- train(environment, ...) avec signature cohérente
+- Interface from_config() 
+- Méthodes select_action() et save/load_model
+- train(environment, ...) avec signature 
 """
 
 import numpy as np
