@@ -1,93 +1,411 @@
-import numpy as np
-import random
-import os
+"""
+On-Policy First Visit Monte Carlo Control pour l'apprentissage par renforcement.
 
-class OnPolicyFirstVisitMCControl:
+Version harmonisée avec l'architecture du projet :
+- Hérite de BaseAlgorithm
+- Interface from_config() standardisée
+- Méthodes select_action() et save/load_model compatibles
+- train(environment, num_episodes, verbose) avec signature cohérente
+"""
+
+import numpy as np
+import json
+import pickle
+import time
+import random
+from typing import Dict, List, Any, Optional
+from .base_algorithm import BaseAlgorithm
+
+
+class OnPolicyFirstVisitMCControl(BaseAlgorithm):
     """
-    On-policy First Visit Monte Carlo Control (epsilon-greedy).
-    Compatible avec tous les environnements BaseEnvironment.
+    On-Policy First Visit Monte Carlo Control harmonisé.
+    
+    Algorithme on-policy qui améliore la politique en suivant une stratégie epsilon-greedy
+    et met à jour les Q-values avec la méthode first-visit.
     """
-    def __init__(self, environment, num_episodes=5000, gamma=0.99, epsilon=0.1):
-        self.env = environment
-        self.num_episodes = num_episodes
+    
+    def __init__(self, 
+                 state_space_size: int,
+                 action_space_size: int,
+                 gamma: float = 0.99,
+                 epsilon: float = 0.1,
+                 epsilon_decay: float = 0.995,
+                 epsilon_min: float = 0.01):
+        """
+        Initialise On-Policy First Visit MC Control.
+        
+        Args:
+            state_space_size: Nombre d'états
+            action_space_size: Nombre d'actions
+            gamma: Facteur d'actualisation
+            epsilon: Taux d'exploration initial
+            epsilon_decay: Facteur de décroissance d'epsilon
+            epsilon_min: Valeur minimale d'epsilon
+        """
+        super().__init__("OnPolicyFirstVisitMC", state_space_size, action_space_size)
+        
         self.gamma = gamma
         self.epsilon = epsilon
-        self.nS = self.env.state_space_size
-        self.nA = self.env.action_space_size
-        self.Q = np.zeros((self.nS, self.nA))
-        self.returns = [[[] for _ in range(self.nA)] for _ in range(self.nS)]
-        self.policy = np.ones((self.nS, self.nA)) / self.nA
-
-    def get_action(self, state):
-        valid_actions = self.env.valid_actions
-        if not valid_actions:
-            return 0  # fallback
-        if np.random.rand() < self.epsilon:
+        self.epsilon_decay = epsilon_decay
+        self.epsilon_min = epsilon_min
+        self.initial_epsilon = epsilon
+        
+        # Structures de données MC
+        self.q_function = np.zeros((state_space_size, action_space_size))
+        self.returns = [[[] for _ in range(action_space_size)] for _ in range(state_space_size)]
+        self.policy = np.ones((state_space_size, action_space_size)) / action_space_size
+        
+        # Compteurs pour moyenne incrémentale
+        self.visit_counts = np.zeros((state_space_size, action_space_size))
+    
+    @classmethod
+    def from_config(cls, config: Dict[str, Any], environment):
+        """
+        Crée On-Policy First Visit MC depuis une configuration.
+        
+        Args:
+            config: Configuration avec gamma, epsilon, etc.
+            environment: Environnement pour dimensionnement
+            
+        Returns:
+            Instance configurée de OnPolicyFirstVisitMCControl
+        """
+        return cls(
+            state_space_size=environment.state_space_size,
+            action_space_size=environment.action_space_size,
+            gamma=config.get('gamma', 0.99),
+            epsilon=config.get('epsilon', 0.1),
+            epsilon_decay=config.get('epsilon_decay', 0.995),
+            epsilon_min=config.get('epsilon_min', 0.01)
+        )
+    
+    def train(self, environment, num_episodes: int, verbose: bool = False):
+        """
+        Entraîne On-Policy First Visit MC Control.
+        
+        Args:
+            environment: Environnement d'entraînement
+            num_episodes: Nombre d'épisodes d'entraînement
+            verbose: Affichage des informations de progression
+            
+        Returns:
+            Dict avec résultats d'entraînement
+        """
+        if verbose:
+            print(f"Entraînement On-Policy First Visit MC sur {num_episodes} épisodes...")
+            print(f"États: {self.state_space_size}, Actions: {self.action_space_size}")
+            print(f"Gamma: {self.gamma}, Epsilon initial: {self.epsilon}")
+        
+        start_time = time.time()
+        episode_rewards = []
+        episode_lengths = []
+        
+        for episode in range(num_episodes):
+            # Génération d'un épisode suivant la politique courante
+            total_reward, episode_length = self._run_episode(environment)
+            
+            episode_rewards.append(total_reward)
+            episode_lengths.append(episode_length)
+            
+            # Mise à jour epsilon
+            if self.epsilon > self.epsilon_min:
+                self.epsilon *= self.epsilon_decay
+                self.epsilon = max(self.epsilon, self.epsilon_min)
+            
+            # Enregistrement de l'épisode
+            self.add_training_episode(episode + 1, total_reward, episode_length)
+            
+            if verbose and (episode + 1) % 1000 == 0:
+                avg_reward = np.mean(episode_rewards[-100:])
+                print(f"Épisode {episode + 1}: reward moyen = {avg_reward:.3f}, epsilon = {self.epsilon:.3f}")
+        
+        # Finalisation
+        training_time = time.time() - start_time
+        self.is_trained = True
+        
+        if verbose:
+            final_avg_reward = np.mean(episode_rewards[-100:])
+            print(f"Entraînement terminé. Reward moyen final: {final_avg_reward:.3f}")
+            print(f"Epsilon final: {self.epsilon:.3f}")
+        
+        return {
+            'episodes': num_episodes,
+            'final_avg_reward': np.mean(episode_rewards[-100:]) if episode_rewards else 0.0,
+            'final_epsilon': self.epsilon,
+            'episode_rewards': episode_rewards,
+            'episode_lengths': episode_lengths,
+            'training_time': training_time
+        }
+    
+    def _run_episode(self, environment):
+        """
+        Exécute un épisode suivant la politique courante.
+        
+        Args:
+            environment: Environnement d'entraînement
+            
+        Returns:
+            Tuple[float, int]: (total_reward, episode_length)
+        """
+        # Reset de l'environnement
+        state = environment.reset()
+        
+        # Génération de l'épisode
+        episode_states = []
+        episode_actions = []
+        episode_rewards = []
+        
+        done = False
+        max_steps = getattr(environment, 'max_steps', 1000)
+        
+        for step in range(max_steps):
+            if done:
+                break
+            
+            # Sélection d'action selon la politique courante (epsilon-greedy)
+            valid_actions = environment.valid_actions
+            if not valid_actions:
+                break
+            
+            action = self._select_action_from_policy(state, valid_actions)
+            
+            # Exécution de l'action
+            next_state, reward, done, _ = environment.step(action)
+            
+            # Enregistrement
+            episode_states.append(state)
+            episode_actions.append(action)
+            episode_rewards.append(reward)
+            
+            state = next_state
+        
+        # Mise à jour des Q-values avec first-visit
+        self._update_q_values_first_visit(episode_states, episode_actions, episode_rewards)
+        
+        # Mise à jour de la politique
+        self._update_policy()
+        
+        total_reward = sum(episode_rewards)
+        episode_length = len(episode_rewards)
+        
+        return total_reward, episode_length
+    
+    def _select_action_from_policy(self, state: int, valid_actions: List[int]) -> int:
+        """
+        Sélectionne une action selon la politique courante (epsilon-greedy).
+        
+        Args:
+            state: État actuel
+            valid_actions: Actions valides dans cet état
+            
+        Returns:
+            Action sélectionnée
+        """
+        if np.random.random() < self.epsilon:
+            # Exploration: action aléatoire parmi les valides
             return random.choice(valid_actions)
         else:
-            q_vals = self.policy[state]
-            best_a = max(valid_actions, key=lambda a: q_vals[a])
-            return best_a
-
-    def train(self):
-        for episode in range(self.num_episodes):
-            state = self.env.reset()
-            valid_actions = self.env.valid_actions
-            if not valid_actions:
-                continue
-            action = random.choice(valid_actions)
-            episode_states = [state]
-            episode_actions = [action]
-            episode_rewards = []
-            done = False
+            # Exploitation: meilleure action selon la politique courante
+            # Restriction aux actions valides
+            valid_policy_probs = [self.policy[state, a] for a in valid_actions]
+            if sum(valid_policy_probs) > 0:
+                # Normalisation et échantillonnage
+                valid_policy_probs = np.array(valid_policy_probs)
+                valid_policy_probs /= valid_policy_probs.sum()
+                action_idx = np.random.choice(len(valid_actions), p=valid_policy_probs)
+                return valid_actions[action_idx]
+            else:
+                # Fallback: action aléatoire
+                return random.choice(valid_actions)
+    
+    def _update_q_values_first_visit(self, states: List[int], actions: List[int], rewards: List[float]):
+        """
+        Met à jour les Q-values avec la méthode first-visit.
+        
+        Args:
+            states: Séquence d'états
+            actions: Séquence d'actions
+            rewards: Séquence de récompenses
+        """
+        G = 0.0
+        visited_sa_pairs = set()
+        
+        # Parcours inverse de l'épisode
+        for t in reversed(range(len(states))):
+            if t < len(rewards):
+                G = self.gamma * G + rewards[t]
             
-            while not done:
-                next_state, reward, done, _ = self.env.step(action)
-                episode_rewards.append(reward)
-                if not done:
-                    valid_actions = self.env.valid_actions
-                    if not valid_actions:
-                        break
-                    action = self.get_action(next_state)
-                    if action not in valid_actions:
-                        action = random.choice(valid_actions)
-                    episode_states.append(next_state)
-                    episode_actions.append(action)
-                state = next_state
+            state = states[t]
+            action = actions[t]
+            sa_pair = (state, action)
             
-            G = 0
-            visited = set()
-            for t in reversed(range(len(episode_states))):
-                s = episode_states[t]
-                a = episode_actions[t]
-                r = episode_rewards[t]
-                G = self.gamma * G + r
-                if (s, a) not in visited:
-                    self.returns[s][a].append(G)
-                    self.Q[s, a] = np.mean(self.returns[s][a])
-                    best_a = np.argmax(self.Q[s])
-                    self.policy[s] = self.epsilon / self.nA
-                    self.policy[s, best_a] += 1 - self.epsilon
-                    visited.add((s, a))
-        return {
-            'Q': self.Q,
-            'policy': self.policy
-        }
-
-    def save(self, path):
-        np.savez(path, Q=self.Q, policy=self.policy)
-
-    def load(self, path):
-        data = np.load(path)
-        self.Q = data['Q']
-        self.policy = data['policy'] 
-
+            # First-visit: mise à jour seulement si première visite
+            if sa_pair not in visited_sa_pairs:
+                visited_sa_pairs.add(sa_pair)
+                
+                # Ajout du return à la liste
+                self.returns[state][action].append(G)
+                
+                # Mise à jour Q avec la moyenne des returns
+                self.q_function[state, action] = np.mean(self.returns[state][action])
+    
+    def _update_policy(self):
+        """Met à jour la politique epsilon-greedy basée sur Q."""
+        for state in range(self.state_space_size):
+            # Trouver la meilleure action
+            best_action = np.argmax(self.q_function[state])
+            
+            # Politique epsilon-greedy
+            self.policy[state] = np.full(self.action_space_size, self.epsilon / self.action_space_size)
+            self.policy[state, best_action] += 1.0 - self.epsilon
+    
+    def select_action(self, state: int, training: bool = False):
+        """
+        Sélectionne une action selon la politique apprise.
+        
+        Args:
+            state: État actuel
+            training: Si True, utilise epsilon-greedy, sinon greedy pur
+            
+        Returns:
+            Action sélectionnée
+        """
+        if not self.is_trained:
+            raise ValueError("Algorithme non entraîné")
+        
+        if training:
+            return self.select_epsilon_greedy_action(state, self.epsilon)
+        else:
+            return self.select_greedy_action(state)
+    
+    def get_policy(self):
+        """
+        Retourne la politique apprise.
+        
+        Returns:
+            np.ndarray: Politique déterministe [état] = action
+        """
+        if not self.is_trained:
+            return None
+        
+        return np.argmax(self.q_function, axis=1)
+    
     def save_model(self, filepath: str) -> bool:
-        import pickle
+        """
+        Sauvegarde le modèle entraîné.
+        
+        Args:
+            filepath: Chemin de sauvegarde (sans extension)
+            
+        Returns:
+            True si succès
+        """
         try:
-            with open(filepath + '.pkl', 'wb') as f:
-                pickle.dump(self.__dict__, f)
+            # Conversion des returns pour JSON (listes de listes de floats)
+            returns_serializable = []
+            for state_returns in self.returns:
+                state_data = []
+                for action_returns in state_returns:
+                    state_data.append(list(action_returns))
+                returns_serializable.append(state_data)
+            
+            model_data = {
+                'algorithm': self.algo_name,
+                'state_space_size': self.state_space_size,
+                'action_space_size': self.action_space_size,
+                'gamma': self.gamma,
+                'epsilon': self.epsilon,
+                'epsilon_decay': self.epsilon_decay,
+                'epsilon_min': self.epsilon_min,
+                'is_trained': self.is_trained,
+                'q_function': self.q_function,
+                'policy': self.policy,
+                'returns': returns_serializable,
+                'visit_counts': self.visit_counts,
+                'training_history': self.training_history
+            }
+            
+            # Sauvegarde JSON avec conversion des arrays
+            json_file = f"{filepath}.json"
+            with open(json_file, 'w') as f:
+                json_data = model_data.copy()
+                json_data['q_function'] = self.q_function.tolist()
+                json_data['policy'] = self.policy.tolist()
+                json_data['visit_counts'] = self.visit_counts.tolist()
+                json.dump(json_data, f, indent=2)
+            
+            # Sauvegarde pickle (plus simple pour les structures complexes)
+            with open(f"{filepath}.pkl", 'wb') as f:
+                pickle.dump(model_data, f)
+            
             return True
+            
         except Exception as e:
             print(f"Erreur lors de la sauvegarde: {e}")
-            return False 
+            return False
+    
+    def load_model(self, filepath: str) -> bool:
+        """
+        Charge un modèle pré-entraîné.
+        
+        Args:
+            filepath: Chemin du modèle (sans extension)
+            
+        Returns:
+            True si succès
+        """
+        try:
+            # Essaie d'abord le fichier pickle
+            try:
+                with open(f"{filepath}.pkl", 'rb') as f:
+                    model_data = pickle.load(f)
+            except FileNotFoundError:
+                # Sinon le fichier JSON
+                with open(f"{filepath}.json", 'r') as f:
+                    json_data = json.load(f)
+                    model_data = json_data.copy()
+                    model_data['q_function'] = np.array(json_data['q_function'])
+                    model_data['policy'] = np.array(json_data['policy'])
+                    model_data['visit_counts'] = np.array(json_data['visit_counts'])
+                    
+                    # Reconstruction des returns
+                    returns_data = json_data['returns']
+                    self.returns = []
+                    for state_data in returns_data:
+                        state_returns = []
+                        for action_data in state_data:
+                            state_returns.append(list(action_data))
+                        self.returns.append(state_returns)
+            
+            # Vérification de compatibilité
+            if (model_data['state_space_size'] != self.state_space_size or
+                model_data['action_space_size'] != self.action_space_size):
+                raise ValueError("Incompatibilité des dimensions")
+            
+            # Chargement des données
+            self.q_function = model_data['q_function']
+            self.policy = model_data['policy']
+            self.visit_counts = model_data['visit_counts']
+            self.is_trained = model_data['is_trained']
+            self.epsilon = model_data['epsilon']
+            self.training_history = model_data.get('training_history', [])
+            
+            # Chargement des returns si pas déjà fait
+            if 'returns' in model_data and not hasattr(self, 'returns'):
+                self.returns = model_data['returns']
+            
+            return True
+            
+        except Exception as e:
+            print(f"Erreur lors du chargement: {e}")
+            return False
+    
+    def reset_training(self):
+        """Remet à zéro l'entraînement."""
+        super().reset_training()
+        self.q_function = np.zeros((self.state_space_size, self.action_space_size))
+        self.returns = [[[] for _ in range(self.action_space_size)] for _ in range(self.state_space_size)]
+        self.policy = np.ones((self.state_space_size, self.action_space_size)) / self.action_space_size
+        self.visit_counts = np.zeros((self.state_space_size, self.action_space_size))
+        self.epsilon = self.initial_epsilon

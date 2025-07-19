@@ -24,7 +24,7 @@ project_root = os.path.dirname(current_dir)
 sys.path.append(os.path.join(project_root, 'src'))
 sys.path.append(os.path.join(project_root, 'utils'))
 
-from rl_algorithms.base_algorithm import BaseAlgorithm
+from src.rl_algorithms.base_algorithm import BaseAlgorithm
 
 
 class QLearning(BaseAlgorithm):
