@@ -1,5 +1,5 @@
 """
-Algorithme Q-Learning pour l'apprentissage par renforcement.
+Algorithme Q-Learning
 
 Implémente l'algorithme Q-Learning off-policy pour l'apprentissage de politiques
 dans des environnements avec modèle inconnu.
@@ -266,7 +266,7 @@ class QLearning(BaseAlgorithm):
             String formaté de la Q-table
         """
         if not self.is_trained:
-            return "❌ Algorithme non entraîné"
+            return " Algorithme non entraîné"
         
         output = f"\n{'='*50}\n"
         output += f"Q-TABLE - {self.algo_name}\n"

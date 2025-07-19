@@ -1,5 +1,5 @@
 """
-Algorithme Value Iteration pour l'apprentissage par renforcement.
+Algorithme Value Iteration.
 
 Implémente l'algorithme de programmation dynamique Value Iteration
 pour résoudre des MDP avec modèle connu.

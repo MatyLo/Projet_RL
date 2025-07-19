@@ -1,95 +1,440 @@
-import numpy as np
-import random
-import os
+"""
+Off-Policy Monte Carlo Control
 
-class OffPolicyMCControl:
+architecture :
+- Hérite de BaseAlgorithm
+- Interface from_config() 
+- Méthodes select_action() et save/load_model
+- train(environment, num_episodes, verbose)
+"""
+
+import numpy as np
+import json
+import pickle
+import time
+import random
+from typing import Dict, List, Any, Optional
+from .base_algorithm import BaseAlgorithm
+
+
+class OffPolicyMCControl(BaseAlgorithm):
     """
-    Off-policy Monte Carlo Control (avec importance sampling).
-    Compatible avec tous les environnements BaseEnvironment.
+    Off-Policy Monte Carlo Control harmonisé.
+    
+    Algorithme off-policy qui maintient deux politiques :
+    - Politique de comportement (behavior policy) : epsilon-greedy pour exploration
+    - Politique cible (target policy) : greedy pour exploitation
+    Utilise importance sampling pour corriger la différence entre les politiques.
     """
-    def __init__(self, environment, num_episodes=5000, gamma=0.99, epsilon=0.1):
-        self.env = environment
-        self.num_episodes = num_episodes
+    
+    def __init__(self, 
+                 state_space_size: int,
+                 action_space_size: int,
+                 gamma: float = 0.99,
+                 epsilon: float = 0.1,
+                 epsilon_decay: float = 0.995,
+                 epsilon_min: float = 0.01):
+        """
+        Initialise Off-Policy Monte Carlo Control.
+        
+        Args:
+            state_space_size: Nombre d'états
+            action_space_size: Nombre d'actions
+            gamma: Facteur d'actualisation
+            epsilon: Taux d'exploration pour la politique de comportement
+            epsilon_decay: Facteur de décroissance d'epsilon
+            epsilon_min: Valeur minimale d'epsilon
+        """
+        super().__init__("OffPolicyMC", state_space_size, action_space_size)
+        
         self.gamma = gamma
         self.epsilon = epsilon
-        self.nS = self.env.state_space_size
-        self.nA = self.env.action_space_size
-        self.Q = np.zeros((self.nS, self.nA))
-        self.C = np.zeros((self.nS, self.nA))  # Cumulative sum of weights
-        self.target_policy = np.ones((self.nS, self.nA)) / self.nA
-        self.behavior_policy = np.ones((self.nS, self.nA)) / self.nA
-
-    def get_action(self, state):
-        valid_actions = self.env.valid_actions
-        if not valid_actions:
-            return 0  # fallback
-        if np.random.rand() < self.epsilon:
+        self.epsilon_decay = epsilon_decay
+        self.epsilon_min = epsilon_min
+        self.initial_epsilon = epsilon
+        
+        # Structures de données pour importance sampling
+        self.q_function = np.zeros((state_space_size, action_space_size))
+        self.cumulative_weights = np.zeros((state_space_size, action_space_size))  # C(s,a)
+        
+        # Politique cible (target policy) : greedy
+        self.target_policy = np.zeros((state_space_size, action_space_size))
+        self._update_target_policy()
+        
+        # Politique de comportement (behavior policy) : epsilon-greedy
+        self.behavior_policy = np.ones((state_space_size, action_space_size)) / action_space_size
+    
+    @classmethod
+    def from_config(cls, config: Dict[str, Any], environment):
+        """
+        Crée Off-Policy MC depuis une configuration.
+        
+        Args:
+            config: Configuration avec gamma, epsilon, etc.
+            environment: Environnement pour dimensionnement
+            
+        Returns:
+            Instance configurée de OffPolicyMCControl
+        """
+        return cls(
+            state_space_size=environment.state_space_size,
+            action_space_size=environment.action_space_size,
+            gamma=config.get('gamma', 0.99),
+            epsilon=config.get('epsilon', 0.1),
+            epsilon_decay=config.get('epsilon_decay', 0.995),
+            epsilon_min=config.get('epsilon_min', 0.01)
+        )
+    
+    def train(self, environment, num_episodes: int, verbose: bool = False):
+        """
+        Entraîne Off-Policy Monte Carlo Control.
+        
+        Args:
+            environment: Environnement d'entraînement
+            num_episodes: Nombre d'épisodes d'entraînement
+            verbose: Affichage des informations de progression
+            
+        Returns:
+            Dict avec résultats d'entraînement
+        """
+        if verbose:
+            print(f"Entraînement Off-Policy MC sur {num_episodes} épisodes...")
+            print(f"États: {self.state_space_size}, Actions: {self.action_space_size}")
+            print(f"Gamma: {self.gamma}, Epsilon initial: {self.epsilon}")
+        
+        start_time = time.time()
+        episode_rewards = []
+        episode_lengths = []
+        
+        for episode in range(num_episodes):
+            # Génération d'un épisode suivant la politique de comportement
+            total_reward, episode_length = self._run_episode_with_importance_sampling(environment)
+            
+            episode_rewards.append(total_reward)
+            episode_lengths.append(episode_length)
+            
+            # Mise à jour epsilon pour la politique de comportement
+            if self.epsilon > self.epsilon_min:
+                self.epsilon *= self.epsilon_decay
+                self.epsilon = max(self.epsilon, self.epsilon_min)
+            
+            # Mise à jour de la politique de comportement
+            self._update_behavior_policy()
+            
+            # Enregistrement de l'épisode
+            self.add_training_episode(episode + 1, total_reward, episode_length)
+            
+            if verbose and (episode + 1) % 1000 == 0:
+                avg_reward = np.mean(episode_rewards[-100:])
+                print(f"Épisode {episode + 1}: reward moyen = {avg_reward:.3f}, epsilon = {self.epsilon:.3f}")
+        
+        # Finalisation
+        training_time = time.time() - start_time
+        self.is_trained = True
+        
+        if verbose:
+            final_avg_reward = np.mean(episode_rewards[-100:])
+            print(f"Entraînement terminé. Reward moyen final: {final_avg_reward:.3f}")
+            print(f"Epsilon final: {self.epsilon:.3f}")
+        
+        return {
+            'episodes': num_episodes,
+            'final_avg_reward': np.mean(episode_rewards[-100:]) if episode_rewards else 0.0,
+            'final_epsilon': self.epsilon,
+            'episode_rewards': episode_rewards,
+            'episode_lengths': episode_lengths,
+            'training_time': training_time
+        }
+    
+    def _run_episode_with_importance_sampling(self, environment):
+        """
+        Exécute un épisode avec importance sampling.
+        
+        Args:
+            environment: Environnement d'entraînement
+            
+        Returns:
+            Tuple[float, int]: (total_reward, episode_length)
+        """
+        # Reset de l'environnement
+        state = environment.reset()
+        
+        # Génération de l'épisode suivant la politique de comportement
+        episode_states = []
+        episode_actions = []
+        episode_rewards = []
+        
+        done = False
+        max_steps = getattr(environment, 'max_steps', 1000)
+        
+        for step in range(max_steps):
+            if done:
+                break
+            
+            # Sélection d'action selon la politique de comportement (epsilon-greedy)
+            valid_actions = environment.valid_actions
+            if not valid_actions:
+                break
+            
+            action = self._select_action_behavior_policy(state, valid_actions)
+            
+            # Exécution de l'action
+            next_state, reward, done, _ = environment.step(action)
+            
+            # Enregistrement
+            episode_states.append(state)
+            episode_actions.append(action)
+            episode_rewards.append(reward)
+            
+            state = next_state
+        
+        # Mise à jour avec importance sampling
+        self._update_q_values_importance_sampling(episode_states, episode_actions, episode_rewards)
+        
+        # Mise à jour de la politique cible
+        self._update_target_policy()
+        
+        total_reward = sum(episode_rewards)
+        episode_length = len(episode_rewards)
+        
+        return total_reward, episode_length
+    
+    def _select_action_behavior_policy(self, state: int, valid_actions: List[int]) -> int:
+        """
+        Sélectionne une action selon la politique de comportement (epsilon-greedy).
+        
+        Args:
+            state: État actuel
+            valid_actions: Actions valides dans cet état
+            
+        Returns:
+            Action sélectionnée
+        """
+        if np.random.random() < self.epsilon:
+            # Exploration: action aléatoire
             return random.choice(valid_actions)
         else:
-            q_vals = self.behavior_policy[state]
-            best_a = max(valid_actions, key=lambda a: q_vals[a])
-            return best_a
-
-    def train(self):
-        for episode in range(self.num_episodes):
-            state = self.env.reset()
-            episode_states = []
-            episode_actions = []
-            episode_rewards = []
-            done = False
+            # Exploitation: meilleure action selon Q
+            q_values = [self.q_function[state, a] for a in valid_actions]
+            best_action_idx = np.argmax(q_values)
+            return valid_actions[best_action_idx]
+    
+    def _update_q_values_importance_sampling(self, states: List[int], actions: List[int], rewards: List[float]):
+        """
+        Met à jour les Q-values avec importance sampling.
+        
+        Args:
+            states: Séquence d'états
+            actions: Séquence d'actions
+            rewards: Séquence de récompenses
+        """
+        G = 0.0
+        W = 1.0  # Poids d'importance sampling
+        
+        # Parcours inverse de l'épisode
+        for t in reversed(range(len(states))):
+            if t < len(rewards):
+                G = self.gamma * G + rewards[t]
             
-            while not done:
-                valid_actions = self.env.valid_actions
-                if not valid_actions:
-                    break
-                action = self.get_action(state)
-                next_state, reward, done, _ = self.env.step(action)
-                episode_states.append(state)
-                episode_actions.append(action)
-                episode_rewards.append(reward)
-                state = next_state
+            state = states[t]
+            action = actions[t]
             
-            G = 0
-            W = 1.0
-            for t in reversed(range(len(episode_states))):
-                s = episode_states[t]
-                a = episode_actions[t]
-                r = episode_rewards[t]
-                G = self.gamma * G + r
-                self.C[s, a] += W
-                self.Q[s, a] += (W / self.C[s, a]) * (G - self.Q[s, a])
-                # Met à jour la target policy de manière greedy
-                best_a = np.argmax(self.Q[s])
-                self.target_policy[s] = 0
-                self.target_policy[s, best_a] = 1
-                if a != best_a:
-                    break
-                W = W * 1.0 / (self.behavior_policy[s, a])
-        return {
-            'Q': self.Q,
-            'policy': self.target_policy
-        }
-
-    def save(self, path):
-        np.savez(path, Q=self.Q, policy=self.target_policy)
-
-    def load(self, path):
-        data = np.load(path)
-        self.Q = data['Q']
-        self.target_policy = data['policy']
-
+            # Mise à jour des poids cumulés
+            self.cumulative_weights[state, action] += W
+            
+            # Mise à jour de Q(s,a) avec weighted importance sampling
+            if self.cumulative_weights[state, action] > 0:
+                self.q_function[state, action] += (W / self.cumulative_weights[state, action]) * \
+                                                 (G - self.q_function[state, action])
+            
+            # Mise à jour de la politique cible (greedy)
+            best_action = np.argmax(self.q_function[state])
+            self.target_policy[state] = np.zeros(self.action_space_size)
+            self.target_policy[state, best_action] = 1.0
+            
+            # Si l'action n'est pas celle de la politique cible, arrêter
+            if action != best_action:
+                break
+            
+            # Mise à jour du poids d'importance sampling
+            # W = W * (target_policy(a|s) / behavior_policy(a|s))
+            # Politique cible est déterministe (1.0 pour la meilleure action)
+            # Politique de comportement est epsilon-greedy
+            behavior_prob = self._get_behavior_policy_prob(state, action)
+            if behavior_prob > 0:
+                W = W * (1.0 / behavior_prob)  # target_policy prob = 1.0 pour la meilleure action
+            else:
+                break  # Éviter division par zéro
+    
+    def _get_behavior_policy_prob(self, state: int, action: int) -> float:
+        """
+        Calcule la probabilité d'une action selon la politique de comportement.
+        
+        Args:
+            state: État
+            action: Action
+            
+        Returns:
+            Probabilité de l'action
+        """
+        best_action = np.argmax(self.q_function[state])
+        
+        if action == best_action:
+            # Probabilité pour la meilleure action dans epsilon-greedy
+            return 1.0 - self.epsilon + self.epsilon / self.action_space_size
+        else:
+            # Probabilité pour les autres actions
+            return self.epsilon / self.action_space_size
+    
+    def _update_behavior_policy(self):
+        """Met à jour la politique de comportement (epsilon-greedy)."""
+        for state in range(self.state_space_size):
+            best_action = np.argmax(self.q_function[state])
+            
+            # Politique epsilon-greedy
+            self.behavior_policy[state] = np.full(self.action_space_size, self.epsilon / self.action_space_size)
+            self.behavior_policy[state, best_action] += 1.0 - self.epsilon
+    
+    def _update_target_policy(self):
+        """Met à jour la politique cible (greedy)."""
+        for state in range(self.state_space_size):
+            best_action = np.argmax(self.q_function[state])
+            
+            # Politique déterministe greedy
+            self.target_policy[state] = np.zeros(self.action_space_size)
+            self.target_policy[state, best_action] = 1.0
+    
+    def select_action(self, state: int, training: bool = False):
+        """
+        Sélectionne une action selon la politique cible (optimale).
+        
+        Args:
+            state: État actuel
+            training: Si True, utilise behavior policy, sinon target policy
+            
+        Returns:
+            Action sélectionnée
+        """
+        if not self.is_trained:
+            raise ValueError("Algorithme non entraîné")
+        
+        if training:
+            # Utilise la politique de comportement pour l'exploration
+            return self.select_epsilon_greedy_action(state, self.epsilon)
+        else:
+            # Utilise la politique cible (greedy) pour l'exploitation
+            return np.argmax(self.target_policy[state])
+    
     def get_policy(self):
-        return self.target_policy
-
-    def get_Q(self):
-        return self.Q 
-
+        """
+        Retourne la politique cible (optimale).
+        
+        Returns:
+            np.ndarray: Politique déterministe [état] = action
+        """
+        if not self.is_trained:
+            return None
+        
+        return np.argmax(self.target_policy, axis=1)
+    
     def save_model(self, filepath: str) -> bool:
-        import pickle
+        """
+        Sauvegarde le modèle entraîné.
+        
+        Args:
+            filepath: Chemin de sauvegarde (sans extension)
+            
+        Returns:
+            True si succès
+        """
         try:
-            with open(filepath + '.pkl', 'wb') as f:
-                pickle.dump(self.__dict__, f)
+            model_data = {
+                'algorithm': self.algo_name,
+                'state_space_size': self.state_space_size,
+                'action_space_size': self.action_space_size,
+                'gamma': self.gamma,
+                'epsilon': self.epsilon,
+                'epsilon_decay': self.epsilon_decay,
+                'epsilon_min': self.epsilon_min,
+                'is_trained': self.is_trained,
+                'q_function': self.q_function,
+                'target_policy': self.target_policy,
+                'behavior_policy': self.behavior_policy,
+                'cumulative_weights': self.cumulative_weights,
+                'training_history': self.training_history
+            }
+            
+            # Sauvegarde JSON avec conversion des arrays
+            json_file = f"{filepath}.json"
+            with open(json_file, 'w') as f:
+                json_data = model_data.copy()
+                json_data['q_function'] = self.q_function.tolist()
+                json_data['target_policy'] = self.target_policy.tolist()
+                json_data['behavior_policy'] = self.behavior_policy.tolist()
+                json_data['cumulative_weights'] = self.cumulative_weights.tolist()
+                json.dump(json_data, f, indent=2)
+            
+            # Sauvegarde pickle
+            with open(f"{filepath}.pkl", 'wb') as f:
+                pickle.dump(model_data, f)
+            
             return True
+            
         except Exception as e:
             print(f"Erreur lors de la sauvegarde: {e}")
-            return False 
+            return False
+    
+    def load_model(self, filepath: str) -> bool:
+        """
+        Charge un modèle pré-entraîné.
+        
+        Args:
+            filepath: Chemin du modèle (sans extension)
+            
+        Returns:
+            True si succès
+        """
+        try:
+            # Essaie d'abord le fichier pickle
+            try:
+                with open(f"{filepath}.pkl", 'rb') as f:
+                    model_data = pickle.load(f)
+            except FileNotFoundError:
+                # Sinon le fichier JSON
+                with open(f"{filepath}.json", 'r') as f:
+                    json_data = json.load(f)
+                    model_data = json_data.copy()
+                    model_data['q_function'] = np.array(json_data['q_function'])
+                    model_data['target_policy'] = np.array(json_data['target_policy'])
+                    model_data['behavior_policy'] = np.array(json_data['behavior_policy'])
+                    model_data['cumulative_weights'] = np.array(json_data['cumulative_weights'])
+            
+            # Vérification de compatibilité
+            if (model_data['state_space_size'] != self.state_space_size or
+                model_data['action_space_size'] != self.action_space_size):
+                raise ValueError("Incompatibilité des dimensions")
+            
+            # Chargement des données
+            self.q_function = model_data['q_function']
+            self.target_policy = model_data['target_policy']
+            self.behavior_policy = model_data['behavior_policy']
+            self.cumulative_weights = model_data['cumulative_weights']
+            self.is_trained = model_data['is_trained']
+            self.epsilon = model_data['epsilon']
+            self.training_history = model_data.get('training_history', [])
+            
+            return True
+            
+        except Exception as e:
+            print(f"Erreur lors du chargement: {e}")
+            return False
+    
+    def reset_training(self):
+        """Remet à zéro l'entraînement."""
+        super().reset_training()
+        self.q_function = np.zeros((self.state_space_size, self.action_space_size))
+        self.cumulative_weights = np.zeros((self.state_space_size, self.action_space_size))
+        self.target_policy = np.zeros((self.state_space_size, self.action_space_size))
+        self.behavior_policy = np.ones((self.state_space_size, self.action_space_size)) / self.action_space_size
+        self.epsilon = self.initial_epsilon
+        self._update_target_policy()

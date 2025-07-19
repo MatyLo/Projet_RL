@@ -1,7 +1,6 @@
 """
 Classe abstraite de base pour tous les algorithmes d'apprentissage par renforcement.
 
-Version simplifiée - focus sur l'essentiel pour faciliter la compréhension.
 """
 
 from abc import ABC, abstractmethod
@@ -302,7 +301,7 @@ class BaseAlgorithm(ABC):
             String formaté de la Q-table
         """
         if not self.is_trained or self.q_function is None:
-            return "❌ Algorithme non entraîné"
+            return " Algorithme non entraîné"
         
         output = f"\n{'='*50}\n"
         output += f"Q-TABLE - {self.algo_name}\n"
