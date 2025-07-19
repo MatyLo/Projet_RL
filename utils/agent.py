@@ -208,85 +208,6 @@ class Agent:
         Par défaut, utilise la récompense positive.
         """
         return episode_reward > 0
-
-    def evaluate_performance2(self, 
-                           num_episodes: int = 100,
-                           verbose: bool = True) -> Dict[str, Any]:
-        """
-        Évalue les performances de l'algorithme entraîné.
-        
-        Args:
-            num_episodes: Nombre d'épisodes d'évaluation
-            verbose: Affichage des informations détaillées
-            
-        Returns:
-            Dict avec statistiques d'évaluation
-        """
-        if verbose:
-            print(f"\n📊 ÉVALUATION: {self.agent_name}")
-            print(f"Épisodes d'évaluation: {num_episodes}")
-        
-        start_time = time.time()
-        
-        # Métriques de performance
-        episode_rewards = []
-        episode_lengths = []
-        success_count = 0
-        
-        for episode in range(num_episodes):
-            state = self.environment.reset()
-            episode_reward = 0.0
-            steps = 0
-            max_steps = getattr(self.environment, 'max_steps', 1000)
-            
-            for step in range(max_steps):
-                # Action sans exploration (politique gloutonne)
-                action = self.algorithm.select_action(state, training=False)
-                next_state, reward, done, info = self.environment.step(action)
-                
-                episode_reward += reward
-                steps += 1
-                state = next_state
-                
-                if done:
-                    if info.get("target_reached", False):
-                        success_count += 1
-                    break
-            
-            episode_rewards.append(episode_reward)
-            episode_lengths.append(steps)
-            
-            if verbose and (episode + 1) % (num_episodes // 10) == 0:
-                progress = (episode + 1) / num_episodes * 100
-                print(f"Progression: {progress:.0f}% - Récompense moyenne: {np.mean(episode_rewards):.2f}")
-        
-        evaluation_time = time.time() - start_time
-        success_rate = success_count / num_episodes
-        
-        # Résultats
-        results = {
-            "agent_name": self.agent_name,
-            "num_episodes": num_episodes,
-            "avg_reward": np.mean(episode_rewards),
-            "std_reward": np.std(episode_rewards),
-            "min_reward": np.min(episode_rewards),
-            "max_reward": np.max(episode_rewards),
-            "avg_episode_length": np.mean(episode_lengths),
-            "success_rate": success_rate,
-            "evaluation_time": evaluation_time,
-            "timestamp": datetime.now().isoformat()
-        }
-        
-        self.evaluation_history.append(results)
-        
-        if verbose:
-            print(f"\n✅ RÉSULTATS:")
-            print(f"Récompense moyenne: {results['avg_reward']:.2f} ± {results['std_reward']:.2f}")
-            print(f"Taux de succès: {success_rate:.1%}")
-            print(f"Longueur moyenne: {results['avg_episode_length']:.1f} étapes")
-            print(f"Temps d'évaluation: {evaluation_time:.2f}s\n")
-        
-        return results
     
     def demonstrate_step_by_step(self, 
                                 num_episodes: int = 1,
@@ -439,7 +360,7 @@ class Agent:
                                    key=lambda x: x[1]["avg_reward"], 
                                    reverse=True)
             
-            print(f"\n🏆 CLASSEMENT:")
+            print(f"\n CLASSEMENT:")
             print(f"{'Rang':<5}{'Agent':<20}{'Algorithme':<15}{'Récompense':<12}{'Succès':<10}")
             print("-" * 62)
             
