@@ -191,6 +191,18 @@ class TwoRoundRPSEnvironment(BaseEnvironment):
             'opponent_round1_choice': self.ACTION_NAMES[self.opponent_round1_choice] if self.opponent_round1_choice is not None else None
         }
     
+    def get_terminal_states(self) -> List[int]:
+        """
+        Retourne les états terminaux de l'environnement.
+        
+        Pour Two Round RPS:
+        - État 10: Fin du jeu (après les 2 rounds)
+        
+        Returns:
+            List[int]: Liste des états terminaux
+        """
+        return [10]
+    
     def render(self, mode: str = 'console') -> Optional[Any]:
         """Affiche l'état actuel de l'environnement"""
         if mode == 'console':
