@@ -42,7 +42,7 @@ class MontyHall2(BaseEnvironment):
         Exécute une action dans l'environnement
         
         État 0: action = numéro de porte (0 à 4)
-        États 1,2,3: action = 0 (maintenir) ou 1 (changer)
+        États 1,2,3: action = 0 (maintenir) ou 1+ (changer)
         """
         info = {}
         reward = 0.0

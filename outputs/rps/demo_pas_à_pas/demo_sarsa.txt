@@ -1,0 +1,42 @@
+
+🎬 DÉMONSTRATION PAS-À-PAS: Agent_sarsa_rps_entraine
+============================================================
+
+🎯 Épisode 1/1
+État initial: 0
+
+=== TwoRoundRPS ===
+Round 1 - Opponent plays randomly
+Valid actions: ['Rock', 'Paper', 'Scissors']
+Q-values état 0: [0.35824856 0.25314515 0.93478184]
+Meilleure action: 2 (Q=0.935)
+
+⏯️ Étape 1:
+Action choisie: 2
+État: 0 → 9
+Récompense: 0.0 | Total: 0.00
+
+=== TwoRoundRPS ===
+Round 2 - Opponent will play: Scissors
+Round 1 result: 0.0
+Valid actions: ['Rock', 'Paper', 'Scissors']
+Q-values état 9: [ 1.     -0.5904  0.    ]
+Meilleure action: 0 (Q=1.000)
+
+⏯️ Étape 2:
+Action choisie: 0
+État: 9 → 10
+Récompense: 1.0 | Total: 1.00
+
+=== TwoRoundRPS ===
+Game finished!
+Final score: 1.0
+Result: Agent wins the game!
+Q-values état 10: [0. 0. 0.]
+Meilleure action: 0 (Q=0.000)
+🎉 SUCCÈS - Cible atteinte!
+
+📋 Résumé épisode 1:
+Récompense totale: 1.00
+Nombre d'étapes: 2
+Succès: ✅

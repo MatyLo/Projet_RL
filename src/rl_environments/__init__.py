@@ -1,7 +1,7 @@
 """
 Package des environnements d'apprentissage par renforcement.
 """
-
+"""
 from .base_environment import BaseEnvironment
 from .line_world import LineWorld
 from .monty_hall_interactive import MontyHallInteractive
@@ -13,3 +13,4 @@ __all__ = [
     'MontyHallInteractive',
     'MontyHall2StepByStep'
 ]
+"""

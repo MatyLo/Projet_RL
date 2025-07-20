@@ -54,13 +54,13 @@ class GridWorld(BaseEnvironment):
         if action not in self.valid_actions:
             raise ValueError(f"Action invalide: {action} depuis {self.current_pos}")
         x, y = self.current_pos
-        if action == 0:
+        if action == 0: #Up
             y -= 1
-        elif action == 1:
+        elif action == 1: #Down
             y += 1
-        elif action == 2:
+        elif action == 2: #Left
             x -= 1
-        elif action == 3:
+        elif action == 3: #Right
             x += 1
         new_pos = (x, y)
         self.current_pos = new_pos

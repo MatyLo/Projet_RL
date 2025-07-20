@@ -187,8 +187,11 @@ class BaseAlgorithm(ABC):
         
         # Extraction des données depuis training_history
         rewards = [episode['reward'] for episode in self.training_history]
+        print(rewards)
         steps = [episode['steps'] for episode in self.training_history]
+        print(steps)
         episodes = [episode['episode'] for episode in self.training_history]
+        print(episodes)
         
         fig, axes = plt.subplots(2, 2, figsize=figsize)
         

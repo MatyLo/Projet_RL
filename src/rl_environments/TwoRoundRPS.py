@@ -14,14 +14,14 @@ import os
 import sys
 
 # Ajout des chemins
-#current_dir = os.path.dirname(os.path.abspath(__file__))
-#project_root = os.path.dirname(current_dir)
-#sys.path.append(os.path.join(project_root, 'src'))
-#sys.path.append(os.path.join(project_root, 'utils'))
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+sys.path.append(os.path.join(project_root, 'src'))
+sys.path.append(os.path.join(project_root, 'utils'))
 
-#from base_environment import BaseEnvironment
-from src.rl_environments.base_environment import BaseEnvironment
-#from agent import Agent
+from rl_environments.base_environment import BaseEnvironment
+#from src.rl_environments.base_environment import BaseEnvironment
+from agent import Agent
 
 class TwoRoundRPSEnvironment(BaseEnvironment):
     """
@@ -67,6 +67,15 @@ class TwoRoundRPSEnvironment(BaseEnvironment):
     def valid_actions(self) -> List[int]:
         """Actions valides selon l'état actuel"""
         if self.current_state == 10 or self.current_round >= 3:  # Jeu terminé
+            return []
+        return [self.ROCK, self.PAPER, self.SCISSORS]
+
+    def get_valid_actions(self, state: int = None) -> List[int]:
+        """Retourne les actions valides pour un état donné"""
+        if state is None:
+            state = self.current_state
+        
+        if state == 10:  # État terminal
             return []
         return [self.ROCK, self.PAPER, self.SCISSORS]
     
@@ -334,6 +343,18 @@ class TwoRoundRPSEnvironment(BaseEnvironment):
         elif self.current_state == 10:
             return self.current_round >= 3
         return False
+
+    def get_terminal_states(self) -> List[int]:
+        """
+        Retourne les états terminaux de l'environnement.
+        
+        Pour Two Round RPS:
+        - État 10: Fin du jeu (après les 2 rounds)
+        
+        Returns:
+            List[int]: Liste des états terminaux
+        """
+        return [10]
 
 
 # Exemple d'utilisation
