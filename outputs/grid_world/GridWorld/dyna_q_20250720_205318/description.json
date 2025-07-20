@@ -1,0 +1,20 @@
+{
+  "algorithm": "dyna_q",
+  "environment": "GridWorld",
+  "date": "20250720_205318",
+  "hyperparameters": {
+    "learning_rate": 0.15,
+    "gamma": 0.95,
+    "epsilon": 0.03,
+    "epsilon_decay": 0.995,
+    "epsilon_min": 0.03
+  },
+  "metrics": {
+    "final_performance": 0.0,
+    "algorithm_type": "dyna_q",
+    "configuration": "MorePlanning",
+    "training_time": 1753037598.131851,
+    "environment": "GridWorld",
+    "environment_complexity": "5x5 grid, 25 states, 4 actions"
+  }
+}

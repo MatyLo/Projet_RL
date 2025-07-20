@@ -1,0 +1,17 @@
+{
+  "algorithm": "value_iteration",
+  "environment": "LineWorld",
+  "date": "20250720_195223",
+  "hyperparameters": {
+    "gamma": 0.99,
+    "theta": 0.0001,
+    "max_iterations": 500
+  },
+  "metrics": {
+    "final_performance": 1.0,
+    "algorithm_type": "value_iteration",
+    "configuration": "HighDiscount",
+    "training_time": 1753033943.998927,
+    "environment": "LineWorld"
+  }
+}

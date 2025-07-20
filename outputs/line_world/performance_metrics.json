@@ -13,7 +13,7 @@
       "Best_Config": "Aggressive",
       "Performance": 1.0,
       "Convergence_Episodes": 50.0,
-      "Training_Time": 0.007,
+      "Training_Time": 0.0214,
       "Success_Rate": 1.0,
       "Stability": 0.0
     },
@@ -22,7 +22,7 @@
       "Best_Config": "Balanced",
       "Performance": 1.0,
       "Convergence_Episodes": 50.0,
-      "Training_Time": 0.0064,
+      "Training_Time": 0.0065,
       "Success_Rate": 1.0,
       "Stability": 0.0
     },
@@ -49,16 +49,16 @@
       "Best_Config": "Balanced",
       "Performance": 1.0,
       "Convergence_Episodes": 50.0,
-      "Training_Time": 0.0201,
+      "Training_Time": 0.023,
       "Success_Rate": 1.0,
-      "Stability": 1.634
+      "Stability": 1.6759
     },
     {
       "Algorithm": "on_policy_mc",
       "Best_Config": "HighExploration",
       "Performance": 1.0,
       "Convergence_Episodes": 50.0,
-      "Training_Time": 0.1583,
+      "Training_Time": 0.1844,
       "Success_Rate": 1.0,
       "Stability": 0.0
     },
@@ -67,7 +67,7 @@
       "Best_Config": "Conservative",
       "Performance": 1.0,
       "Convergence_Episodes": 50.0,
-      "Training_Time": 0.0477,
+      "Training_Time": 0.0552,
       "Success_Rate": 1.0,
       "Stability": 0.0
     },
@@ -76,9 +76,9 @@
       "Best_Config": "Intensive",
       "Performance": 1.0,
       "Convergence_Episodes": 50.0,
-      "Training_Time": 0.0909,
+      "Training_Time": 0.0709,
       "Success_Rate": 1.0,
-      "Stability": 0.0712
+      "Stability": 0.0
     }
   ],
   "category_analysis": [
@@ -88,7 +88,7 @@
       "Avg_Performance": 1.0,
       "Std_Performance": 0.0,
       "Avg_Convergence": 50.0,
-      "Avg_Time": 0.010603830218315125,
+      "Avg_Time": 0.014525353908538818,
       "Best_Algorithm": "q_learning"
     },
     {
@@ -97,7 +97,7 @@
       "Avg_Performance": 1.0,
       "Std_Performance": 0.0,
       "Avg_Convergence": 1.0,
-      "Avg_Time": 0.00011576712131500244,
+      "Avg_Time": 0.00012849271297454834,
       "Best_Algorithm": "value_iteration"
     },
     {
@@ -106,7 +106,7 @@
       "Avg_Performance": 1.0,
       "Std_Performance": 0.0,
       "Avg_Convergence": 50.0,
-      "Avg_Time": 0.07825798789660136,
+      "Avg_Time": 0.0870327353477478,
       "Best_Algorithm": "monte_carlo_es"
     },
     {
@@ -115,7 +115,7 @@
       "Avg_Performance": 1.0,
       "Std_Performance": 0.0,
       "Avg_Convergence": 50.0,
-      "Avg_Time": 0.04812118411064148,
+      "Avg_Time": 0.05517503619194031,
       "Best_Algorithm": "dyna_q"
     }
   ],
@@ -125,7 +125,7 @@
       "Best_Config": "Aggressive",
       "Performance": 1.0,
       "Convergence_Episodes": 50.0,
-      "Training_Time": 0.007,
+      "Training_Time": 0.0214,
       "Success_Rate": 1.0,
       "Stability": 0.0
     },
@@ -152,7 +152,7 @@
       "Best_Config": "Aggressive",
       "Performance": 1.0,
       "Convergence_Episodes": 50.0,
-      "Training_Time": 0.007,
+      "Training_Time": 0.0214,
       "Success_Rate": 1.0,
       "Stability": 0.0
     }

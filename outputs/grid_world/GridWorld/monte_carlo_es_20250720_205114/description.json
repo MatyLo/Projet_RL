@@ -1,0 +1,18 @@
+{
+  "algorithm": "monte_carlo_es",
+  "environment": "GridWorld",
+  "date": "20250720_205114",
+  "hyperparameters": {
+    "gamma": 0.95,
+    "theta": null,
+    "max_iterations": null
+  },
+  "metrics": {
+    "final_performance": 1.0,
+    "algorithm_type": "monte_carlo_es",
+    "configuration": "HighExploration",
+    "training_time": 1753037474.413714,
+    "environment": "GridWorld",
+    "environment_complexity": "5x5 grid, 25 states, 4 actions"
+  }
+}

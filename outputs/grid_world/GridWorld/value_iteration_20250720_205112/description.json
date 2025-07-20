@@ -1,0 +1,18 @@
+{
+  "algorithm": "value_iteration",
+  "environment": "GridWorld",
+  "date": "20250720_205112",
+  "hyperparameters": {
+    "gamma": 0.9,
+    "theta": 1e-05,
+    "max_iterations": 1500
+  },
+  "metrics": {
+    "final_performance": 1.0,
+    "algorithm_type": "value_iteration",
+    "configuration": "LowDiscount",
+    "training_time": 1753037472.2067,
+    "environment": "GridWorld",
+    "environment_complexity": "5x5 grid, 25 states, 4 actions"
+  }
+}

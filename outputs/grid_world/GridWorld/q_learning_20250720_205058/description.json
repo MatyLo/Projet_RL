@@ -1,0 +1,20 @@
+{
+  "algorithm": "q_learning",
+  "environment": "GridWorld",
+  "date": "20250720_205058",
+  "hyperparameters": {
+    "learning_rate": 0.05,
+    "gamma": 0.99,
+    "epsilon": 0.02,
+    "epsilon_decay": 0.995,
+    "epsilon_min": 0.02
+  },
+  "metrics": {
+    "final_performance": 0.0,
+    "algorithm_type": "q_learning",
+    "configuration": "Conservative",
+    "training_time": 1753037458.647815,
+    "environment": "GridWorld",
+    "environment_complexity": "5x5 grid, 25 states, 4 actions"
+  }
+}
