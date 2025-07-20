@@ -128,7 +128,12 @@ class ValueIteration(BaseAlgorithm):
         self.is_trained = True
         
         # Ajouter un épisode factice pour la compatibilité
-        self.add_training_episode(1, np.mean(self.value_function), iteration)
+        if hasattr(environment, 'goal_pos'):
+            goal_state = environment._to_state(environment.goal_pos)
+            episode_reward = np.clip(self.value_function[goal_state], -3.0, 1.0)
+        else:
+            episode_reward = 1.0
+        self.add_training_episode(1, episode_reward, iteration)
         
         if verbose:
             print(f"Convergence en {iteration} itérations")

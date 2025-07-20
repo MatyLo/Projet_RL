@@ -1,0 +1,213 @@
+{
+  "experiment_config": {
+    "num_episodes_td": 1000,
+    "num_episodes_mc": 3000,
+    "num_episodes_dp": null,
+    "num_runs_per_config": 2,
+    "evaluation_episodes": 200,
+    "random_seed": 42
+  },
+  "environment_info": {
+    "name": "GridWorld",
+    "size": "5x5",
+    "states": 25,
+    "actions": 4,
+    "reward_range": [
+      -3.0,
+      1.0
+    ],
+    "special_positions": {
+      "start": [
+        0,
+        0
+      ],
+      "goal": [
+        4,
+        4
+      ],
+      "losing": [
+        4,
+        0
+      ]
+    }
+  },
+  "algorithm_ranking": [
+    {
+      "Algorithm": "sarsa",
+      "Best_Config": "Balanced",
+      "Performance": 1.0,
+      "Convergence_Episodes": 100.0,
+      "Training_Time": 0.0361,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    {
+      "Algorithm": "value_iteration",
+      "Best_Config": "Fast",
+      "Performance": 1.0,
+      "Convergence_Episodes": 1.0,
+      "Training_Time": 0.0628,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    {
+      "Algorithm": "policy_iteration",
+      "Best_Config": "Fast",
+      "Performance": 1.0,
+      "Convergence_Episodes": 1.0,
+      "Training_Time": 0.0091,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    {
+      "Algorithm": "monte_carlo_es",
+      "Best_Config": "Balanced",
+      "Performance": 1.0,
+      "Convergence_Episodes": 100.0,
+      "Training_Time": 0.218,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    {
+      "Algorithm": "on_policy_mc",
+      "Best_Config": "HighExploration",
+      "Performance": 1.0,
+      "Convergence_Episodes": 100.0,
+      "Training_Time": 1.1348,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    {
+      "Algorithm": "dyna_q",
+      "Best_Config": "Standard",
+      "Performance": 1.0,
+      "Convergence_Episodes": 100.0,
+      "Training_Time": 3.2798,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    {
+      "Algorithm": "off_policy_mc",
+      "Best_Config": "LowExploration",
+      "Performance": 0.5,
+      "Convergence_Episodes": 100.0,
+      "Training_Time": 3.553,
+      "Success_Rate": 0.5,
+      "Stability": -1.303
+    },
+    {
+      "Algorithm": "q_learning",
+      "Best_Config": "Aggressive",
+      "Performance": 0.0,
+      "Convergence_Episodes": 100.0,
+      "Training_Time": 2.1229,
+      "Success_Rate": 0.0,
+      "Stability": -0.6353
+    }
+  ],
+  "category_analysis": [
+    {
+      "Category": "Temporal Difference",
+      "Num_Algorithms": 2,
+      "Avg_Performance": 0.5,
+      "Std_Performance": 0.5163977794943222,
+      "Avg_Convergence": 100.0,
+      "Avg_Time": 1.1193826496601105,
+      "Best_Algorithm": "sarsa"
+    },
+    {
+      "Category": "Programmation Dynamique",
+      "Num_Algorithms": 2,
+      "Avg_Performance": 1.0,
+      "Std_Performance": 0.0,
+      "Avg_Convergence": 1.0,
+      "Avg_Time": 0.05880655348300934,
+      "Best_Algorithm": "value_iteration"
+    },
+    {
+      "Category": "Monte Carlo",
+      "Num_Algorithms": 3,
+      "Avg_Performance": 0.75,
+      "Std_Performance": 0.4423258684646914,
+      "Avg_Convergence": 100.0,
+      "Avg_Time": 2.2376676301161447,
+      "Best_Algorithm": "monte_carlo_es"
+    },
+    {
+      "Category": "Planning",
+      "Num_Algorithms": 1,
+      "Avg_Performance": 0.375,
+      "Std_Performance": 0.5175491695067657,
+      "Avg_Convergence": 100.0,
+      "Avg_Time": 15.845263004302979,
+      "Best_Algorithm": "dyna_q"
+    }
+  ],
+  "trade_offs": {
+    "best_performance": {
+      "Algorithm": "sarsa",
+      "Best_Config": "Balanced",
+      "Performance": 1.0,
+      "Convergence_Episodes": 100.0,
+      "Training_Time": 0.0361,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    "fastest_convergence": {
+      "Algorithm": "value_iteration",
+      "Best_Config": "Fast",
+      "Performance": 1.0,
+      "Convergence_Episodes": 1.0,
+      "Training_Time": 0.0628,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    "most_efficient": {
+      "Algorithm": "policy_iteration",
+      "Best_Config": "Fast",
+      "Performance": 1.0,
+      "Convergence_Episodes": 1.0,
+      "Training_Time": 0.0091,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    "highest_success": {
+      "Algorithm": "sarsa",
+      "Best_Config": "Balanced",
+      "Performance": 1.0,
+      "Convergence_Episodes": 100.0,
+      "Training_Time": 0.0361,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    }
+  },
+  "summary_stats": {
+    "total_experiments": 64,
+    "failed_experiments": 0,
+    "algorithms_tested": 8,
+    "best_algorithm": "sarsa",
+    "best_performance": 1.0
+  },
+  "gridworld_insights": {
+    "complexity_vs_lineworld": "5x more states, 2x more actions",
+    "key_challenges": [
+      "exploration",
+      "trap_avoidance",
+      "long_trajectories"
+    ],
+    "optimal_hyperparams": {
+      "epsilon_range": [
+        0.15,
+        0.3
+      ],
+      "gamma_range": [
+        0.95,
+        0.99
+      ],
+      "episodes_recommended": [
+        2000,
+        3000
+      ]
+    }
+  }
+}

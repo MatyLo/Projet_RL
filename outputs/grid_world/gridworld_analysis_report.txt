@@ -1,0 +1,80 @@
+RAPPORT D'ANALYSE - GRIDWORLD ENVIRONMENT
+==================================================
+
+MÉTHODOLOGIE:
+---------------
+• Environnement: GridWorld (5x5 grille, 25 états, 4 actions)
+• Positions spéciales: Start (0,0), Goal (4,4), Losing (4,0)
+• Récompenses: Goal +1.0, Losing -3.0, Normal 0.0
+• Algorithmes testés: 8
+• Configurations par algorithme: 3-4
+• Runs par configuration: 2
+• Total expériences: 64
+• Épisodes TD: 1000
+• Épisodes MC: 3000
+• Épisodes évaluation: 200
+
+CLASSEMENT FINAL - GRIDWORLD:
+------------------------------
+1. SARSA (Balanced)
+   Performance: 1.0000
+   Convergence: 100 épisodes
+   Temps: 0.036s
+   Succès: 100.00%
+
+2. VALUE_ITERATION (Fast)
+   Performance: 1.0000
+   Convergence: 1 épisodes
+   Temps: 0.063s
+   Succès: 100.00%
+
+3. POLICY_ITERATION (Fast)
+   Performance: 1.0000
+   Convergence: 1 épisodes
+   Temps: 0.009s
+   Succès: 100.00%
+
+4. MONTE_CARLO_ES (Balanced)
+   Performance: 1.0000
+   Convergence: 100 épisodes
+   Temps: 0.218s
+   Succès: 100.00%
+
+5. ON_POLICY_MC (HighExploration)
+   Performance: 1.0000
+   Convergence: 100 épisodes
+   Temps: 1.135s
+   Succès: 100.00%
+
+6. DYNA_Q (Standard)
+   Performance: 1.0000
+   Convergence: 100 épisodes
+   Temps: 3.280s
+   Succès: 100.00%
+
+7. OFF_POLICY_MC (LowExploration)
+   Performance: 0.5000
+   Convergence: 100 épisodes
+   Temps: 3.553s
+   Succès: 50.00%
+
+8. Q_LEARNING (Aggressive)
+   Performance: 0.0000
+   Convergence: 100 épisodes
+   Temps: 2.123s
+   Succès: 0.00%
+
+RECOMMANDATIONS - GRIDWORLD:
+----------------------------
+• Meilleure performance globale: SARSA
+• Convergence la plus rapide: VALUE_ITERATION
+ANALYSE PAR CATÉGORIE - GRIDWORLD:
+-----------------------------------
+• Temporal Difference: 0.5000 ± 0.5164
+  Meilleur: sarsa
+• Programmation Dynamique: 1.0000 ± 0.0000
+  Meilleur: value_iteration
+• Monte Carlo: 0.7500 ± 0.4423
+  Meilleur: monte_carlo_es
+• Planning: 0.3750 ± 0.5175
+  Meilleur: dyna_q

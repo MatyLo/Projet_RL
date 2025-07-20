@@ -1,0 +1,20 @@
+{
+  "algorithm": "dyna_q",
+  "environment": "GridWorld",
+  "date": "20250720_222323",
+  "hyperparameters": {
+    "learning_rate": 0.1,
+    "gamma": 0.99,
+    "epsilon": 0.027012904489336704,
+    "epsilon_decay": 0.998,
+    "epsilon_min": 0.02
+  },
+  "metrics": {
+    "final_performance": 0.0,
+    "algorithm_type": "dyna_q",
+    "configuration": "Standard",
+    "training_time": 1753043003.781315,
+    "environment": "GridWorld",
+    "environment_complexity": "5x5 grid, 25 states, 4 actions"
+  }
+}
