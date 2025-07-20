@@ -1,0 +1,14 @@
+{
+  "algorithm": "Dyna-Q",
+  "num_episodes": 5000,
+  "train_time_seconds": 1.9009451866149902,
+  "final_avg_reward": -0.24,
+  "hyperparameters": {
+    "learning_rate": 0.1,
+    "gamma": 0.99,
+    "epsilon": 0.01,
+    "epsilon_decay": 0.995,
+    "epsilon_min": 0.01,
+    "n_planning_steps": 10
+  }
+}
