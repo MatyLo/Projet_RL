@@ -1,0 +1,42 @@
+
+🎬 DÉMONSTRATION PAS-À-PAS: Agent_vi_rps_entraine
+============================================================
+
+🎯 Épisode 1/1
+État initial: 0
+
+=== TwoRoundRPS ===
+Round 1 - Opponent plays randomly
+Valid actions: ['Rock', 'Paper', 'Scissors']
+Q-values état 0: [0.9 0.9 0.9]
+Meilleure action: 1 (Q=0.900)
+
+⏯️ Étape 1:
+Action choisie: 1
+État: 0 → 4
+Récompense: 1.0 | Total: 1.00
+
+=== TwoRoundRPS ===
+Round 2 - Opponent will play: Paper
+Round 1 result: 1.0
+Valid actions: ['Rock', 'Paper', 'Scissors']
+Q-values état 4: [-1.  0.  1.]
+Meilleure action: 2 (Q=1.000)
+
+⏯️ Étape 2:
+Action choisie: 2
+État: 4 → 10
+Récompense: 1.0 | Total: 2.00
+
+=== TwoRoundRPS ===
+Game finished!
+Final score: 2.0
+Result: Agent wins the game!
+Q-values état 10: [0. 0. 0.]
+Meilleure action: 0 (Q=0.000)
+🎉 SUCCÈS - Cible atteinte!
+
+📋 Résumé épisode 1:
+Récompense totale: 2.00
+Nombre d'étapes: 2
+Succès: ✅

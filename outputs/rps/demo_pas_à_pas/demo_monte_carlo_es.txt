@@ -1,0 +1,42 @@
+
+🎬 DÉMONSTRATION PAS-À-PAS: Agent_mce_rps_entraine
+============================================================
+
+🎯 Épisode 1/1
+État initial: 0
+
+=== TwoRoundRPS ===
+Round 1 - Opponent plays randomly
+Valid actions: ['Rock', 'Paper', 'Scissors']
+Q-values état 0: [0.56451613 0.48571429 0.344     ]
+Meilleure action: 0 (Q=0.565)
+
+⏯️ Étape 1:
+Action choisie: 0
+État: 0 → 3
+Récompense: 1.0 | Total: 1.00
+
+=== TwoRoundRPS ===
+Round 2 - Opponent will play: Rock
+Round 1 result: 1.0
+Valid actions: ['Rock', 'Paper', 'Scissors']
+Q-values état 3: [0.29583333 0.86203704 0.57027027]
+Meilleure action: 1 (Q=0.862)
+
+⏯️ Étape 2:
+Action choisie: 1
+État: 3 → 10
+Récompense: 1.0 | Total: 2.00
+
+=== TwoRoundRPS ===
+Game finished!
+Final score: 2.0
+Result: Agent wins the game!
+Q-values état 10: [0. 0. 0.]
+Meilleure action: 0 (Q=0.000)
+🎉 SUCCÈS - Cible atteinte!
+
+📋 Résumé épisode 1:
+Récompense totale: 2.00
+Nombre d'étapes: 2
+Succès: ✅

@@ -1,0 +1,79 @@
+
+🎬 DÉMONSTRATION PAS-À-PAS: Agent_ql_hall2
+============================================================
+
+🎯 Épisode 1/1
+État initial: 0
+=== Monty Hall Level 2 ===
+État: 0 - Choix initial (5 portes)
+Portes restantes: [0, 1, 2, 3, 4] (total: 5)
+Portes éliminées: []
+Choix actuel de l'agent: None
+Actions valides: [0, 1, 2, 3, 4]
+==============================
+Q-values état 0: [0.57113829 0.80370854 0.69743242 0.71600296 0.69323941]
+Meilleure action: 1 (Q=0.804)
+
+⏯️ Étape 1:
+Action choisie: 1
+État: 0 → 1
+Récompense: 0.0 | Total: 0.00
+=== Monty Hall Level 2 ===
+État: 1 - Après 1ère élimination (4 portes)
+Portes restantes: [0, 1, 3, 4] (total: 4)
+Portes éliminées: [2]
+Choix actuel de l'agent: 1
+Actions valides: [0, 1]
+==============================
+Q-values état 1: [0.80704461 0.81914861 0.         0.         0.        ]
+Meilleure action: 1 (Q=0.819)
+
+⏯️ Étape 2:
+Action choisie: 1
+État: 1 → 2
+Récompense: 0.0 | Total: 0.00
+=== Monty Hall Level 2 ===
+État: 2 - Après 2ème élimination (3 portes)
+Portes restantes: [0, 3, 4] (total: 3)
+Portes éliminées: [1, 2]
+Choix actuel de l'agent: 0
+Actions valides: [0, 1]
+==============================
+Q-values état 2: [0.71633245 0.67420855 0.         0.         0.        ]
+Meilleure action: 0 (Q=0.716)
+
+⏯️ Étape 3:
+Action choisie: 0
+État: 2 → 3
+Récompense: 0.0 | Total: 0.00
+=== Monty Hall Level 2 ===
+État: 3 - Après 3ème élimination (2 portes)
+Portes restantes: [0, 4] (total: 2)
+Portes éliminées: [1, 2, 3]
+Choix actuel de l'agent: 0
+Actions valides: [0, 1]
+==============================
+Q-values état 3: [0.14740954 0.26425608 0.         0.         0.        ]
+Meilleure action: 1 (Q=0.264)
+
+⏯️ Étape 4:
+Action choisie: 1
+État: 3 → 4
+Récompense: 0.0 | Total: 0.00
+=== Monty Hall Level 2 ===
+État: 4 - Partie terminée
+Portes restantes: [0, 4] (total: 2)
+Portes éliminées: [1, 2, 3]
+Choix actuel de l'agent: 4
+Actions valides: []
+Porte gagnante: 0
+Résultat: PERDU
+==============================
+Q-values état 4: [0. 0. 0. 0. 0.]
+Meilleure action: 0 (Q=0.000)
+⏰ Épisode terminé
+
+📋 Résumé épisode 1:
+Récompense totale: 0.00
+Nombre d'étapes: 4
+Succès: ❌
