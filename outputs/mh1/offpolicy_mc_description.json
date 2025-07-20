@@ -1,0 +1,12 @@
+{
+  "algorithm": "Off-policy MC Control",
+  "num_episodes": 5000,
+  "train_time_seconds": 0.7796647548675537,
+  "final_avg_reward": 0.95,
+  "hyperparameters": {
+    "gamma": 0.99,
+    "epsilon": 0.01,
+    "epsilon_decay": 0.995,
+    "epsilon_min": 0.01
+  }
+}

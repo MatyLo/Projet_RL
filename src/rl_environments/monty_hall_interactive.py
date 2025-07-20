@@ -168,3 +168,20 @@ class MontyHallInteractive(BaseEnvironment):
             else:  # Rester
                 return 1.0 * (1/3) + (-1.0) * (2/3)  # ≈ -0.33
         return 0.0
+
+    def get_transition_probabilities(self, state: int, action: int) -> dict:
+        """
+        Retourne les probabilités de transition depuis un état avec une action.
+        Compatible avec Policy Iteration/Value Iteration.
+        """
+        # État 0 : choisir une porte, va toujours vers état 1
+        if state == 0 and action in [0, 1, 2]:
+            return {1: 1.0}
+        # État 1 : rester (0) ou changer (1), va toujours vers état 2
+        elif state == 1 and action in [0, 1]:
+            return {2: 1.0}
+        # État 2 : terminal, reste sur place
+        elif state == 2:
+            return {2: 1.0}
+        # Cas non prévu : transition impossible
+        return {state: 1.0}

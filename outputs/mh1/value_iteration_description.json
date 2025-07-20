@@ -1,0 +1,12 @@
+{
+  "algorithm": "Value Iteration",
+  "iterations": 1,
+  "converged": true,
+  "max_value": 0.0,
+  "train_time_seconds": 0.006001949310302734,
+  "hyperparameters": {
+    "gamma": 0.9,
+    "theta": 1e-06,
+    "max_iterations": 1000
+  }
+}

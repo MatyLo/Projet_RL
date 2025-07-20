@@ -1,0 +1,12 @@
+{
+  "algorithm": "Policy Iteration",
+  "iterations": 2,
+  "converged": true,
+  "max_value": 1.0,
+  "train_time_seconds": 0.0014641284942626953,
+  "hyperparameters": {
+    "gamma": 0.999999,
+    "theta": 1e-05,
+    "max_iterations": 1000
+  }
+}
