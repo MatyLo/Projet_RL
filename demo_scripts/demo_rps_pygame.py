@@ -4,7 +4,7 @@ Démonstration PyGame - Two Round Rock Paper Scissors
 Ce script permet de :
 1. Voir l'agent entraîné jouer en PyGame
 2. Jouer soi-même en mode humain
-3. Comparer les performances
+3. Quitter
 
 Usage:
     python demo_scripts/demo_rps_pygame.py
@@ -30,7 +30,14 @@ except ImportError:
 
 # Imports des modules
 from rl_environments.TwoRoundRPS import TwoRoundRPSEnvironment
-from rl_algorithms.temporal_difference.q_learning import QLearning
+from rl_algorithms.q_learning import QLearning
+from rl_algorithms.policy_iteration import PolicyIteration
+from rl_algorithms.value_iteration import ValueIteration
+from rl_algorithms.monte_carlo_es import MonteCarloES
+from rl_algorithms.on_policy_first_visit_mc_control import OnPolicyFirstVisitMCControl
+from rl_algorithms.off_policy_mc_control import OffPolicyMCControl
+from rl_algorithms.sarsa import SARSA
+from rl_algorithms.dyna_q import DynaQ
 from agent import Agent
 from human_player import HumanPlayer
 
@@ -510,17 +517,64 @@ def main():
     # 1. Créer et entraîner un agent
     print("1️⃣ Création et entraînement de l'agent...")
     env = TwoRoundRPSEnvironment()
+
+    #Chargement du modèle sauvegardé et création agent entraîné
+    """### Policy iteration
+    algo_sauv = PolicyIteration(
+        state_space_size=env.state_space_size,
+        action_space_size=env.action_space_size)
+    algo_sauv.load_model(filepath = "outputs/rps/modèle/policy_iteration.pkl")
+    agent = Agent(algo_sauv, env, "Agent_pi_rps_entraine")"""
+
+    """### Value iteration
+    algo_sauv = ValueIteration(
+        state_space_size=env.state_space_size,
+        action_space_size=env.action_space_size)
+    algo_sauv.load_model(filepath = "outputs/rps/modèle/value_iteration.pkl")
+    agent = Agent(algo_sauv, env, "Agent_vi_rps_entraine")"""
+
+    """### Monte Carlo ES
+    algo_sauv = MonteCarloES(
+        state_space_size=env.state_space_size,
+        action_space_size=env.action_space_size)
+    algo_sauv.load_model(filepath = "outputs/rps/modèle/monte_carlo_es.pkl")
+    agent = Agent(algo_sauv, env, "Agent_mce_rps_entraine")"""
+
+    """### On policy first visit monte carlo control
+    algo_sauv = OnPolicyFirstVisitMCControl(
+        state_space_size=env.state_space_size,
+        action_space_size=env.action_space_size)
+    algo_sauv.load_model(filepath = "outputs/rps/modèle/on_monte_carlo.pkl")
+    agent = Agent(algo_sauv, env, "Agent_on_mc_rps_entraine")"""
+
+    """### Off policy monte carlo control
+    algo_sauv = OffPolicyMCControl(
+        state_space_size=env.state_space_size,
+        action_space_size=env.action_space_size)
+    algo_sauv.load_model(filepath = "outputs/rps/modèle/off_monte_carlo.pkl")
+    agent = Agent(algo_sauv, env, "Agent_off_mc_rps_entraine")"""
+
+    """### Sarsa
+    algo_sauv = SARSA(
+        state_space_size=env.state_space_size,
+        action_space_size=env.action_space_size)
+    algo_sauv.load_model(filepath = "outputs/rps/modèle/sarsa.pkl")
+    agent = Agent(algo_sauv, env, "Agent_sarsa_rps_entraine")"""
+
+    """### Q learning
+    algo_sauv = QLearning(
+        state_space_size=env.state_space_size,
+        action_space_size=env.action_space_size)
+    algo_sauv.load_model(filepath = "outputs/rps/modèle/q_learning.pkl")
+    agent = Agent(algo_sauv, env, "Agent_ql_rps_entraine")"""
+
+    ### DynaQ
+    algo_sauv = DynaQ(
+            state_space_size=env.state_space_size,
+            action_space_size=env.action_space_size)
+    algo_sauv.load_model(filepath = "outputs/rps/modèle/dyna_q.pkl")
+    agent = Agent(algo_sauv, env, "Agent_dynaq_rps_entraine")
     
-    config = {
-        'learning_rate': 0.1,
-        'gamma': 0.9,
-        'epsilon': 0.1
-    }
-    
-    algorithm = QLearning.from_config(config, env)
-    algorithm.train(env, num_episodes=1000, verbose=False)
-    
-    agent = Agent(algorithm, env, "RPSAgent")
     print(f"✅ Agent entraîné: {agent.agent_name}")
     
     # 2. Créer la démonstration
