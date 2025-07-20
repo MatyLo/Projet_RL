@@ -1,0 +1,167 @@
+{
+  "experiment_config": {
+    "num_episodes_td": 1000,
+    "num_episodes_mc": 2000,
+    "num_episodes_dp": null,
+    "num_runs_per_config": 2,
+    "evaluation_episodes": 100,
+    "random_seed": 42
+  },
+  "algorithm_ranking": [
+    {
+      "Algorithm": "q_learning",
+      "Best_Config": "Aggressive",
+      "Performance": 1.0,
+      "Convergence_Episodes": 50.0,
+      "Training_Time": 0.007,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    {
+      "Algorithm": "sarsa",
+      "Best_Config": "Balanced",
+      "Performance": 1.0,
+      "Convergence_Episodes": 50.0,
+      "Training_Time": 0.0064,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    {
+      "Algorithm": "value_iteration",
+      "Best_Config": "HighDiscount",
+      "Performance": 1.0,
+      "Convergence_Episodes": 1.0,
+      "Training_Time": 0.0001,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    {
+      "Algorithm": "policy_iteration",
+      "Best_Config": "HighDiscount",
+      "Performance": 1.0,
+      "Convergence_Episodes": 1.0,
+      "Training_Time": 0.0001,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    {
+      "Algorithm": "monte_carlo_es",
+      "Best_Config": "Balanced",
+      "Performance": 1.0,
+      "Convergence_Episodes": 50.0,
+      "Training_Time": 0.0201,
+      "Success_Rate": 1.0,
+      "Stability": 1.634
+    },
+    {
+      "Algorithm": "on_policy_mc",
+      "Best_Config": "HighExploration",
+      "Performance": 1.0,
+      "Convergence_Episodes": 50.0,
+      "Training_Time": 0.1583,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    {
+      "Algorithm": "off_policy_mc",
+      "Best_Config": "Conservative",
+      "Performance": 1.0,
+      "Convergence_Episodes": 50.0,
+      "Training_Time": 0.0477,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    {
+      "Algorithm": "dyna_q",
+      "Best_Config": "Intensive",
+      "Performance": 1.0,
+      "Convergence_Episodes": 50.0,
+      "Training_Time": 0.0909,
+      "Success_Rate": 1.0,
+      "Stability": 0.0712
+    }
+  ],
+  "category_analysis": [
+    {
+      "Category": "Temporal Difference",
+      "Num_Algorithms": 2,
+      "Avg_Performance": 1.0,
+      "Std_Performance": 0.0,
+      "Avg_Convergence": 50.0,
+      "Avg_Time": 0.010603830218315125,
+      "Best_Algorithm": "q_learning"
+    },
+    {
+      "Category": "Programmation Dynamique",
+      "Num_Algorithms": 2,
+      "Avg_Performance": 1.0,
+      "Std_Performance": 0.0,
+      "Avg_Convergence": 1.0,
+      "Avg_Time": 0.00011576712131500244,
+      "Best_Algorithm": "value_iteration"
+    },
+    {
+      "Category": "Monte Carlo",
+      "Num_Algorithms": 3,
+      "Avg_Performance": 1.0,
+      "Std_Performance": 0.0,
+      "Avg_Convergence": 50.0,
+      "Avg_Time": 0.07825798789660136,
+      "Best_Algorithm": "monte_carlo_es"
+    },
+    {
+      "Category": "Planning",
+      "Num_Algorithms": 1,
+      "Avg_Performance": 1.0,
+      "Std_Performance": 0.0,
+      "Avg_Convergence": 50.0,
+      "Avg_Time": 0.04812118411064148,
+      "Best_Algorithm": "dyna_q"
+    }
+  ],
+  "trade_offs": {
+    "best_performance": {
+      "Algorithm": "q_learning",
+      "Best_Config": "Aggressive",
+      "Performance": 1.0,
+      "Convergence_Episodes": 50.0,
+      "Training_Time": 0.007,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    "fastest_convergence": {
+      "Algorithm": "value_iteration",
+      "Best_Config": "HighDiscount",
+      "Performance": 1.0,
+      "Convergence_Episodes": 1.0,
+      "Training_Time": 0.0001,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    "most_efficient": {
+      "Algorithm": "value_iteration",
+      "Best_Config": "HighDiscount",
+      "Performance": 1.0,
+      "Convergence_Episodes": 1.0,
+      "Training_Time": 0.0001,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    },
+    "highest_success": {
+      "Algorithm": "q_learning",
+      "Best_Config": "Aggressive",
+      "Performance": 1.0,
+      "Convergence_Episodes": 50.0,
+      "Training_Time": 0.007,
+      "Success_Rate": 1.0,
+      "Stability": 0.0
+    }
+  },
+  "summary_stats": {
+    "total_experiments": 64,
+    "failed_experiments": 0,
+    "algorithms_tested": 8,
+    "best_algorithm": "q_learning",
+    "best_performance": 1.0
+  }
+}

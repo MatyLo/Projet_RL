@@ -1,0 +1,19 @@
+{
+  "algorithm": "q_learning",
+  "environment": "LineWorld",
+  "date": "20250720_191911",
+  "hyperparameters": {
+    "learning_rate": 0.15,
+    "gamma": 0.99,
+    "epsilon": 0.01838477123854821,
+    "epsilon_decay": 0.999,
+    "epsilon_min": 0.01
+  },
+  "metrics": {
+    "final_performance": 1.0,
+    "algorithm_type": "q_learning",
+    "configuration": "LowExploration",
+    "training_time": 1753031951.1356192,
+    "environment": "LineWorld"
+  }
+}

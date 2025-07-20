@@ -1,0 +1,17 @@
+{
+  "algorithm": "monte_carlo_es",
+  "environment": "LineWorld",
+  "date": "20250720_183941",
+  "hyperparameters": {
+    "gamma": 0.98,
+    "theta": null,
+    "max_iterations": null
+  },
+  "metrics": {
+    "final_performance": 1.0,
+    "algorithm_type": "monte_carlo_es",
+    "configuration": "Balanced",
+    "training_time": 1753029581.7968361,
+    "environment": "LineWorld"
+  }
+}

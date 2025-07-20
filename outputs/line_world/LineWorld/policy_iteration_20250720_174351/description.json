@@ -1,0 +1,17 @@
+{
+  "algorithm": "policy_iteration",
+  "environment": "LineWorld",
+  "date": "20250720_174351",
+  "hyperparameters": {
+    "gamma": 0.85,
+    "theta": 1e-06,
+    "max_iterations": 150
+  },
+  "metrics": {
+    "final_performance": 1.0,
+    "algorithm_type": "policy_iteration",
+    "configuration": "LowDiscount",
+    "training_time": 1753026231.652608,
+    "environment": "LineWorld"
+  }
+}

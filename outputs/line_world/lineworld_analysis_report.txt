@@ -1,0 +1,78 @@
+RAPPORT D'ANALYSE - LINEWORLD ENVIRONMENT
+==================================================
+
+MÉTHODOLOGIE:
+---------------
+• Environnement: LineWorld (5 états, 2 actions)
+• Algorithmes testés: 8
+• Configurations par algorithme: 3-4
+• Runs par configuration: 2
+• Total expériences: 64
+• Épisodes TD: 1000
+• Épisodes MC: 2000
+• Épisodes évaluation: 100
+
+CLASSEMENT FINAL:
+-----------------
+1. Q_LEARNING (Aggressive)
+   Performance: 1.0000
+   Convergence: 50 épisodes
+   Temps: 0.007s
+   Succès: 100.00%
+
+2. SARSA (Balanced)
+   Performance: 1.0000
+   Convergence: 50 épisodes
+   Temps: 0.006s
+   Succès: 100.00%
+
+3. VALUE_ITERATION (HighDiscount)
+   Performance: 1.0000
+   Convergence: 1 épisodes
+   Temps: 0.000s
+   Succès: 100.00%
+
+4. POLICY_ITERATION (HighDiscount)
+   Performance: 1.0000
+   Convergence: 1 épisodes
+   Temps: 0.000s
+   Succès: 100.00%
+
+5. MONTE_CARLO_ES (Balanced)
+   Performance: 1.0000
+   Convergence: 50 épisodes
+   Temps: 0.020s
+   Succès: 100.00%
+
+6. ON_POLICY_MC (HighExploration)
+   Performance: 1.0000
+   Convergence: 50 épisodes
+   Temps: 0.158s
+   Succès: 100.00%
+
+7. OFF_POLICY_MC (Conservative)
+   Performance: 1.0000
+   Convergence: 50 épisodes
+   Temps: 0.048s
+   Succès: 100.00%
+
+8. DYNA_Q (Intensive)
+   Performance: 1.0000
+   Convergence: 50 épisodes
+   Temps: 0.091s
+   Succès: 100.00%
+
+RECOMMANDATIONS:
+----------------
+• Meilleure performance globale: Q_LEARNING
+• Convergence la plus rapide: VALUE_ITERATION
+ANALYSE PAR CATÉGORIE:
+-----------------------
+• Temporal Difference: 1.0000 ± 0.0000
+  Meilleur: q_learning
+• Programmation Dynamique: 1.0000 ± 0.0000
+  Meilleur: value_iteration
+• Monte Carlo: 1.0000 ± 0.0000
+  Meilleur: monte_carlo_es
+• Planning: 1.0000 ± 0.0000
+  Meilleur: dyna_q

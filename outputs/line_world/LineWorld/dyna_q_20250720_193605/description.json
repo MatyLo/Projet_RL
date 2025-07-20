@@ -1,0 +1,19 @@
+{
+  "algorithm": "dyna_q",
+  "environment": "LineWorld",
+  "date": "20250720_193605",
+  "hyperparameters": {
+    "learning_rate": 0.15,
+    "gamma": 0.95,
+    "epsilon": 0.02,
+    "epsilon_decay": 0.99,
+    "epsilon_min": 0.02
+  },
+  "metrics": {
+    "final_performance": 1.0,
+    "algorithm_type": "dyna_q",
+    "configuration": "MorePlanning",
+    "training_time": 1753032965.946508,
+    "environment": "LineWorld"
+  }
+}

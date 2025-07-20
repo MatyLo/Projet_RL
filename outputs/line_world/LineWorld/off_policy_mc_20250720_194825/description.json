@@ -1,0 +1,17 @@
+{
+  "algorithm": "off_policy_mc",
+  "environment": "LineWorld",
+  "date": "20250720_194825",
+  "hyperparameters": {
+    "gamma": 0.99,
+    "theta": null,
+    "max_iterations": null
+  },
+  "metrics": {
+    "final_performance": 1.0,
+    "algorithm_type": "off_policy_mc",
+    "configuration": "LowExploration",
+    "training_time": 1753033705.901487,
+    "environment": "LineWorld"
+  }
+}
