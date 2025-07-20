@@ -1,0 +1,73 @@
+{
+  "algorithm": "ValueIteration",
+  "state_space_size": 5,
+  "action_space_size": 5,
+  "gamma": 0.9,
+  "theta": 1e-06,
+  "is_trained": true,
+  "value_function": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "q_function": [
+    [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  ],
+  "policy": [
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "convergence_history": [
+    {
+      "iteration": 0,
+      "delta": 0,
+      "max_value": 0.0
+    }
+  ],
+  "training_history": [
+    {
+      "episode": 1,
+      "reward": 0.0,
+      "steps": 1
+    }
+  ]
+}

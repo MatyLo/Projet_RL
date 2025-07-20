@@ -1,0 +1,12 @@
+{
+  "algorithm": "On-policy First Visit MC Control",
+  "num_episodes": 10000,
+  "train_time_seconds": 25.917148113250732,
+  "final_avg_reward": 0.74,
+  "hyperparameters": {
+    "gamma": 0.99,
+    "epsilon": 0.01,
+    "epsilon_decay": 0.995,
+    "epsilon_min": 0.01
+  }
+}
