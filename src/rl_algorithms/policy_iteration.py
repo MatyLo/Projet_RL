@@ -99,4 +99,22 @@ class PolicyIteration(BaseAlgorithm):
         self.save(path)
 
     def select_action(self, state):
-        return self.get_action(state) 
+        return self.get_action(state)
+
+    def evaluate(self, environment, num_episodes=100, render=False):
+        rewards = []
+        for ep in range(num_episodes):
+            state = environment.reset()
+            done = False
+            total_reward = 0
+            while not done:
+                action = self.get_action(state)
+                state, reward, done, _ = environment.step(action)
+                total_reward += reward
+                if render:
+                    environment.render()
+            rewards.append(total_reward)
+        return {
+            'mean_reward': float(np.mean(rewards)),
+            'rewards': rewards
+        } 
