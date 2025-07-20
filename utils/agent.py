@@ -73,10 +73,80 @@ class Agent:
                 f"environnement={self.environment.action_space_size}"
             )
     
+    def _is_episode_successful(self, episode_reward: float, info: Dict, criterion: str) -> bool:
+        """
+        Détermine si un épisode est considéré comme réussi selon le critère choisi.
+        
+        Args:
+            episode_reward: Récompense totale de l'épisode
+            info: Dictionnaire d'informations de l'environnement
+            criterion: Critère de succès à utiliser
+            
+        Returns:
+            True si l'épisode est réussi, False sinon
+        """
+        if criterion == "target_reached":
+            # Pour GridWorld, LineWorld avec objectif explicite
+            return info.get("target_reached", False)
+        
+        elif criterion == "positive_reward":
+            # Pour RPS et autres jeux compétitifs
+            return episode_reward > 0
+        
+        elif criterion == "auto":
+            # Détection automatique selon l'environnement
+            env_class_name = self.environment.__class__.__name__
+            env_name_lower = env_class_name.lower()
+            
+            # 1. RPS/Rock Paper Scissors : mapping explicite + patterns (en cas où quel'un d'entre nous change nom de classe)
+            if (env_class_name in ["TwoRoundRPSEnvironment", "TwoRoundRPS", "RPSEnvironment"] or
+                ("rps" in env_name_lower and ("round" in env_name_lower or "rock" in env_name_lower or "paper" in env_name_lower or "scissors" in env_name_lower))):
+                return episode_reward > 0
+                
+            # 2. LineWorld 
+            elif (env_class_name in ["LineWorld", "LineWorldEnvironment", "LineWorldEnv"] or
+                ("line" in env_name_lower and ("world" in env_name_lower or "env" in env_name_lower))):
+                return info.get("target_reached", False)
+                
+            # 3. GridWorld
+            elif (env_class_name in ["GridWorld", "GridWorldEnvironment", "GridWorldEnv"] or
+                ("grid" in env_name_lower and ("world" in env_name_lower or "env" in env_name_lower))):
+                return info.get("target_reached", False)
+                
+            # 4. Monty Hall
+            elif (env_class_name in ["MontyHallInteractive", "MontyHall2", "MontyHallEnvironment", "MontyHall"] or
+                ("monty" in env_name_lower and "hall" in env_name_lower)):
+                return episode_reward > 0
+                
+            # 5. Secret Environments : patterns détectables
+            elif (env_class_name.startswith("SecretEnv") or 
+                "secret" in env_name_lower or 
+                env_class_name.startswith("Secret")):
+                # Pour les secrets, priorité à target_reached, sinon récompense positive
+                if "target_reached" in info:
+                    return info.get("target_reached", False)
+                else:
+                    return episode_reward > 0
+                    
+            else:
+                # Par défaut pour environnements totalement inconnus
+                # target_reached prioritaire, sinon récompense
+                if "target_reached" in info:
+                    return info.get("target_reached", False)
+                else:
+                    return episode_reward > 0
+        
+        elif criterion == "custom":
+            # Permet d'override cette méthode dans des sous-classes
+            return self._custom_success_criterion(episode_reward, info)
+        
+        else:
+            raise ValueError(f"Critère de succès non reconnu: {criterion}")
+
     def evaluate_performance(self, 
-                           num_episodes: int = 100,
-                           verbose: bool = True,
-                           success_criterion: str = "auto") -> Dict[str, Any]:
+                        num_episodes: int = 100,
+                        verbose: bool = True,
+                        success_criterion: str = "auto") -> Dict[str, Any]:
         """
         Évalue les performances de l'algorithme entraîné.
         
@@ -90,7 +160,9 @@ class Agent:
         """
         if verbose:
             print(f"\n📊 ÉVALUATION: {self.agent_name}")
+            print(f"Environnement: {self.environment.__class__.__name__}")
             print(f"Épisodes d'évaluation: {num_episodes}")
+            print(f"Critère de succès: {success_criterion}")
         
         start_time = time.time()
         
@@ -130,7 +202,8 @@ class Agent:
             
             if verbose and (episode + 1) % (num_episodes // 10) == 0:
                 progress = (episode + 1) / num_episodes * 100
-                print(f"Progression: {progress:.0f}% - Récompense moyenne: {np.mean(episode_rewards):.2f}")
+                current_success_rate = success_count / (episode + 1)
+                print(f"Progression: {progress:.0f}% - Récompense moy: {np.mean(episode_rewards):.2f} - Succès: {current_success_rate:.1%}")
         
         evaluation_time = time.time() - start_time
         success_rate = success_count / num_episodes
@@ -162,45 +235,6 @@ class Agent:
             print(f"Temps d'évaluation: {evaluation_time:.2f}s\n")
         
         return results
-
-    def _is_episode_successful(self, episode_reward: float, info: Dict, criterion: str) -> bool:
-        """
-        Détermine si un épisode est considéré comme réussi selon le critère choisi.
-        
-        Args:
-            episode_reward: Récompense totale de l'épisode
-            info: Dictionnaire d'informations de l'environnement
-            criterion: Critère de succès à utiliser
-            
-        Returns:
-            True si l'épisode est réussi, False sinon
-        """
-        if criterion == "target_reached":
-            # Pour GridWorld, LineWorld avec objectif explicite
-            return info.get("target_reached", False)
-        
-        elif criterion == "positive_reward":
-            # Pour RPS et autres jeux compétitifs
-            return episode_reward > 0
-        
-        elif criterion == "auto":
-            # Détection automatique selon l'environnement
-            env_name = self.environment.__class__.__name__.lower()
-            
-            if "rps" in env_name or "rockpaperscissors" in env_name:
-                return episode_reward > 0
-            elif "grid" in env_name or "line" in env_name:
-                return info.get("target_reached", False)
-            else:
-                # Par défaut, utiliser la récompense positive
-                return episode_reward > 0
-        
-        elif criterion == "custom":
-            # Permet d'override cette méthode dans des sous-classes
-            return self._custom_success_criterion(episode_reward, info)
-        
-        else:
-            raise ValueError(f"Critère de succès non reconnu: {criterion}")
 
     def _custom_success_criterion(self, episode_reward: float, info: Dict) -> bool:
         """
