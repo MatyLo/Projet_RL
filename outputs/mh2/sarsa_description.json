@@ -1,0 +1,13 @@
+{
+  "algorithm": "SARSA",
+  "num_episodes": 10000,
+  "train_time_seconds": 3.0495049953460693,
+  "final_avg_reward": 0.84,
+  "hyperparameters": {
+    "learning_rate": 0.1,
+    "gamma": 0.9,
+    "epsilon": 0.01,
+    "epsilon_decay": 0.995,
+    "epsilon_min": 0.01
+  }
+}

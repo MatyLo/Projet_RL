@@ -152,3 +152,22 @@ class MontyHall2StepByStep(BaseEnvironment):
             p[3, a, 4, 1] = 0.5
         p[4, 0, 4, 0] = 1.0
         return p 
+
+    def get_transition_probabilities(self, state: int, action: int) -> dict:
+        """
+        Retourne les probabilités de transition depuis un état avec une action.
+        Compatible avec Policy Iteration/Value Iteration.
+        """
+        # Exemple générique à adapter selon la logique réelle de l'environnement
+        # Ici, on suppose que chaque action fait avancer d'un état jusqu'à l'état terminal (4)
+        if state == 0 and action in range(self.action_space_size):
+            return {1: 1.0}
+        elif state == 1 and action in range(self.action_space_size):
+            return {2: 1.0}
+        elif state == 2 and action in range(self.action_space_size):
+            return {3: 1.0}
+        elif state == 3 and action in range(self.action_space_size):
+            return {4: 1.0}
+        elif state == 4:
+            return {4: 1.0}  # état terminal
+        return {state: 1.0} 
