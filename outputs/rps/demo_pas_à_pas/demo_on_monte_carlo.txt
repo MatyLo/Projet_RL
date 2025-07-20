@@ -8,35 +8,35 @@
 === TwoRoundRPS ===
 Round 1 - Opponent plays randomly
 Valid actions: ['Rock', 'Paper', 'Scissors']
-Q-values état 0: [0.23691589 0.395      0.82557487]
-Meilleure action: 2 (Q=0.826)
+Q-values état 0: [ 0.53103448 -0.08461538  0.91161218]
+Meilleure action: 2 (Q=0.912)
 
 ⏯️ Étape 1:
 Action choisie: 2
-État: 0 → 7
-Récompense: -1.0 | Total: -1.00
+État: 0 → 9
+Récompense: 0.0 | Total: 0.00
 
 === TwoRoundRPS ===
 Round 2 - Opponent will play: Scissors
-Round 1 result: -1.0
+Round 1 result: 0.0
 Valid actions: ['Rock', 'Paper', 'Scissors']
-Q-values état 7: [ 1. -1.  0.]
+Q-values état 9: [ 1. -1.  0.]
 Meilleure action: 0 (Q=1.000)
 
 ⏯️ Étape 2:
 Action choisie: 0
-État: 7 → 10
-Récompense: 1.0 | Total: 0.00
+État: 9 → 10
+Récompense: 1.0 | Total: 1.00
 
 === TwoRoundRPS ===
 Game finished!
-Final score: 0.0
-Result: Game is a tie!
+Final score: 1.0
+Result: Agent wins the game!
 Q-values état 10: [0. 0. 0.]
 Meilleure action: 0 (Q=0.000)
 🎉 SUCCÈS - Cible atteinte!
 
 📋 Résumé épisode 1:
-Récompense totale: 0.00
+Récompense totale: 1.00
 Nombre d'étapes: 2
 Succès: ✅

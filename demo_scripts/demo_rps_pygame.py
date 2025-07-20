@@ -8,6 +8,14 @@ Ce script permet de :
 
 Usage:
     python demo_scripts/demo_rps_pygame.py
+
+ATTENTION: 
+    pour faire marcher ce script: 
+        - il faut aller dans src/rl_environments/TwoRoundRPS et dé-commenter les lignes d'import
+        - il faut également aller dans src/rl_environments/__init__.py et commenter tout le fichier
+
+    pour tester des agents entrainés avec d'autres algorithmes, descendez dans le main de ce dossier et dé-commentez la
+    partie correspondant à l'algorithme
 """
 
 import sys

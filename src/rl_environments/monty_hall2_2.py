@@ -1,362 +1,356 @@
+"""
+Environnement Monty Hall Level 2
+Étend le problème classique à 5 portes avec 4 actions successives.
+"""
+
 import numpy as np
-import random
-from typing import List, Tuple, Dict, Any, Optional
+from typing import Tuple, List, Dict, Any, Optional
 from src.rl_environments.base_environment import BaseEnvironment
 
-class MontyHall2(BaseEnvironment):
+
+class MontyHallLevel2(BaseEnvironment):
     """
-    Environnement Monty Hall Level 2 - Version corrigée
+    Environnement Monty Hall avec 5 portes et 4 actions successives.
     
-    5 portes disponibles, 4 actions successives de l'agent:
-    1. Choix initial (5 portes) → Élimination de 1 porte → 4 portes restantes
-    2. Maintenir ou changer après 1ère élimination (4→3 portes)  
-    3. Maintenir ou changer après 2ème élimination (3→2 portes)
-    4. Choix final entre les 2 portes restantes
+    États:
+    - Les états encodent: phase du jeu, porte choisie, portes éliminées, porte gagnante
+    - Phase: 0 (choix initial), 1-3 (éliminations successives), 4 (choix final)
     
-    États encodés: step_count (0-4)
-    Actions: 
-    - État 0: actions 0-4 (choix de porte)
-    - États 1,2,3: actions 0-1 UNIQUEMENT (0=maintenir, 1=changer)
+    Actions:
+    - Phase 0: Choisir une porte parmi 5 (actions 0-4)
+    - Phases 1-3: Garder (0) ou changer vers une porte spécifique (1-4, selon portes disponibles)
+    - Phase 4: Choix final entre les 2 dernières portes
     """
     
-    def __init__(self, n_doors: int = 5, deterministic: bool = True):
-        super().__init__("MontyHall2")
-        self.n_doors = n_doors
-        self.deterministic = deterministic
+    def __init__(self):
+        super().__init__("MontyHall_Level2")
+        self.num_doors = 5
+        self.num_actions_before_final = 4
         
-        # CORRECTION: action_space_size doit être cohérent
-        self._state_space_size = 5  # États 0,1,2,3,4
-        self._action_space_size = n_doors  # 5 pour compatibilité avec état 0
+        # État du jeu
+        self.phase = 0  # 0: choix initial, 1-3: éliminations, 4: choix final
+        self.winning_door = None  # Porte gagnante (0-4)
+        self.chosen_door = None   # Porte actuellement choisie
+        self.eliminated_doors = set()  # Portes éliminées
+        self.available_doors = set(range(5))  # Portes disponibles
         
-        # Précalcul des matrices pour DP
-        self._transition_probs = None
-        self._reward_matrix = None
-        self._precompute_dp_matrices()
-        
+        # Pour le state encoding
         self.reset()
-    
-    def reset(self) -> int:
-        """Réinitialise l'environnement"""
-        self.step_count = 0
-        if self.deterministic:
-            self.winning_door = 0
-        else:
-            self.winning_door = random.randint(0, self.n_doors - 1)
-        
-        self.agent_choice = None
-        self.eliminated_doors = set()
-        self.remaining_doors = set(range(self.n_doors))
-        self.done = False
-        
-        return self.step_count
     
     @property
     def state_space_size(self) -> int:
-        return self._state_space_size
+        """
+        Espace d'états basé sur:
+        - Phase (5 phases: 0-4)
+        - Porte choisie (5 possibilités)
+        - Portes éliminées (combinaisons possibles)
+        - Porte gagnante (5 possibilités)
+        
+        Approximation: 5 * 5 * (2^5) * 5 = 4000 états maximum
+        En pratique, beaucoup moins car toutes les combinaisons ne sont pas valides.
+        """
+        return 5000  # Approximation sécurisée
     
     @property
     def action_space_size(self) -> int:
-        return self._action_space_size
+        """5 actions maximum (une pour chaque porte)"""
+        return 5
     
     @property
     def valid_actions(self) -> List[int]:
-        """CORRECTION: Actions valides selon l'état actuel"""
-        if self.step_count == 0:
-            return list(range(self.n_doors))  # [0,1,2,3,4]
-        elif self.step_count in [1, 2, 3]:
-            return [0, 1]  # maintenir, changer
+        """Retourne les actions valides selon la phase actuelle"""
+        if self.phase == 0:
+            # Phase initiale: choisir parmi toutes les portes
+            return list(range(5))
+        elif self.phase < 4:
+            # Phases intermédiaires: garder (0) ou changer vers portes disponibles
+            actions = [0]  # Garder la porte actuelle
+            for door in self.available_doors:
+                if door != self.chosen_door:
+                    actions.append(door + 1)  # +1 car 0 = garder
+            return actions
         else:
-            return []  # État terminal
+            # Phase finale: choisir entre les 2 dernières portes
+            remaining_doors = list(self.available_doors)
+            return remaining_doors
     
-    def is_valid_action(self, action: int) -> bool:
-        """AJOUT: Vérifie si une action est valide dans l'état actuel"""
-        return action in self.valid_actions
+    def reset(self) -> int:
+        """Remet l'environnement à l'état initial"""
+        self.phase = 0
+        self.winning_door = np.random.randint(0, 5)
+        self.chosen_door = None
+        self.eliminated_doors = set()
+        self.available_doors = set(range(5))
+        
+        self.current_state = self._encode_state()
+        self._reset_episode_stats()
+        return self.current_state
     
     def step(self, action: int) -> Tuple[int, float, bool, Dict[str, Any]]:
         """Exécute une action dans l'environnement"""
-        info = {}
-        reward = 0.0
-        
-        if self.done:
-            return self.step_count, 0.0, True, info
-        
-        # CORRECTION: Validation stricte des actions
         if not self.is_valid_action(action):
-            return self.step_count, -0.1, False, {'error': 'invalid_action'}
+            raise ValueError(f"Action {action} not valid in phase {self.phase}")
         
-        if self.step_count == 0:  # Choix initial
-            self.agent_choice = action
-            eliminated = self._eliminate_doors_deterministic(1)
-            self.eliminated_doors.update(eliminated)
-            self.remaining_doors -= eliminated
+        reward = 0.0
+        done = False
+        info = {}
+        
+        if self.phase == 0:
+            # Choix initial de la porte
+            self.chosen_door = action
+            self.phase = 1
+            info['action_type'] = 'initial_choice'
+            info['chosen_door'] = self.chosen_door
             
-            info.update({
-                'agent_choice': self.agent_choice,
-                'eliminated': list(eliminated),
-                'remaining': list(self.remaining_doors),
-                'step': self.step_count
-            })
+        elif self.phase < 4:
+            # Phases d'élimination
+            if action == 0:
+                # Garder la porte actuelle
+                info['action_type'] = 'keep'
+            else:
+                # Changer vers une autre porte
+                new_door = action - 1
+                if new_door in self.available_doors and new_door != self.chosen_door:
+                    self.chosen_door = new_door
+                    info['action_type'] = 'switch'
+                    info['new_chosen_door'] = self.chosen_door
+                else:
+                    raise ValueError(f"Invalid door change to {new_door}")
             
-        elif self.step_count in [1, 2, 3]:  # Décisions maintenir/changer
-            # CORRECTION: Plus de mapping - action directe 0/1
-            if action == 1:  # Changer
-                other_doors = list(self.remaining_doors - {self.agent_choice})
-                if other_doors:
-                    # CORRECTION: Choix plus équitable
-                    if self.deterministic:
-                        # Stratégie déterministe mais équitable
-                        self.agent_choice = sorted(other_doors)[0]
-                    else:
-                        self.agent_choice = random.choice(other_doors)
+            # Éliminer une porte (pas la choisie, pas la gagnante)
+            eliminable_doors = self.available_doors - {self.chosen_door, self.winning_door}
+            if eliminable_doors:
+                eliminated = np.random.choice(list(eliminable_doors))
+                self.eliminated_doors.add(eliminated)
+                self.available_doors.remove(eliminated)
+                info['eliminated_door'] = eliminated
             
-            # Actions selon l'étape
-            if self.step_count < 3:  # Étapes 1 et 2
-                eliminated = self._eliminate_doors_deterministic(1)
-                self.eliminated_doors.update(eliminated)
-                self.remaining_doors -= eliminated
-            else:  # Étape 3: décision finale
-                self.done = True
-                reward = 1.0 if self.agent_choice == self.winning_door else 0.0
+            self.phase += 1
             
-            info.update({
-                'agent_choice': self.agent_choice,
-                'eliminated': list(eliminated) if self.step_count < 3 else [],
-                'remaining': list(self.remaining_doors),
-                'step': self.step_count,
-                'switched': action == 1,
-                'result': 'win' if reward == 1.0 else ('lose' if self.done else 'continue')
-            })
+        else:  # phase == 4
+            # Choix final
+            self.chosen_door = action
+            done = True
+            reward = 1.0 if self.chosen_door == self.winning_door else 0.0
+            info['action_type'] = 'final_choice'
+            info['won'] = reward == 1.0
+            info['winning_door'] = self.winning_door
         
-        self.step_count += 1
-        return self.step_count, reward, self.done, info
-    
-    def _eliminate_doors_deterministic(self, count: int) -> set:
-        """Élimination déterministe des portes"""
-        candidates = [d for d in self.remaining_doors 
-                     if d != self.agent_choice and d != self.winning_door]
+        next_state = self._encode_state()
+        self._update_episode_stats(action, reward, next_state, done)
+        self.current_state = next_state
         
-        count = min(count, len(candidates))
-        if count <= 0:
-            return set()
+        return next_state, reward, done, info
+    
+    def _encode_state(self) -> int:
+        """Encode l'état actuel en un entier"""
+        # Simple encoding: phase * 1000 + chosen_door * 100 + hash des portes éliminées
+        state = self.phase * 1000
         
-        if self.deterministic:
-            return set(sorted(candidates)[:count])
-        else:
-            return set(random.sample(candidates, count))
-    
-    def _precompute_dp_matrices(self):
-        """CORRECTION: Matrices DP cohérentes avec la logique réelle"""
-        states = self._state_space_size
-        actions = self._action_space_size
+        if self.chosen_door is not None:
+            state += self.chosen_door * 100
         
-        self._transition_probs = np.zeros((states, actions, states))
-        self._reward_matrix = np.zeros((states, actions))
+        # Ajouter information sur les portes éliminées
+        eliminated_hash = sum([2**door for door in self.eliminated_doors]) % 100
+        state += eliminated_hash
         
-        # État 0: choix initial (actions 0-4)
-        for action in range(self.n_doors):
-            self._transition_probs[0, action, 1] = 1.0
-            self._reward_matrix[0, action] = 0.0
+        return state
+    
+    def _decode_state(self, state: int) -> Tuple[int, Optional[int], set]:
+        """Décode un état (utile pour debug)"""
+        phase = state // 1000
+        chosen_door = (state % 1000) // 100 if (state % 1000) // 100 < 5 else None
+        eliminated_hash = state % 100
         
-        # États 1,2: transitions (actions 0-1 seulement)
-        for state in [1, 2]:
-            for action in [0, 1]:  # CORRECTION: Seulement actions valides
-                self._transition_probs[state, action, state + 1] = 1.0
-                self._reward_matrix[state, action] = 0.0
-            
-            # Actions invalides (2,3,4) restent dans l'état avec pénalité
-            for action in range(2, actions):
-                self._transition_probs[state, action, state] = 1.0
-                self._reward_matrix[state, action] = -0.1
+        # Reconstruction approximative des portes éliminées
+        eliminated_doors = set()
+        for door in range(5):
+            if eliminated_hash & (2**door):
+                eliminated_doors.add(door)
         
-        # État 3: décision finale (actions 0-1 seulement)
-        for action in [0, 1]:
-            self._transition_probs[3, action, 4] = 1.0
-            # CORRECTION: Récompenses réalistes basées sur probabilités
-            if action == 1:  # Changer
-                # Avec 5 portes, changer donne 4/5 = 0.8 de chance de gagner
-                self._reward_matrix[3, action] = 0.8
-            else:  # Maintenir
-                # Maintenir donne 1/5 = 0.2 de chance de gagner
-                self._reward_matrix[3, action] = 0.2
-        
-        # Actions invalides à l'état 3
-        for action in range(2, actions):
-            self._transition_probs[3, action, 3] = 1.0
-            self._reward_matrix[3, action] = -0.1
-        
-        # État 4: terminal
-        for action in range(actions):
-            self._transition_probs[4, action, 4] = 1.0
-            self._reward_matrix[4, action] = 0.0
+        return phase, chosen_door, eliminated_doors
     
-    def get_transition_probabilities(self, state: int, action: int) -> Dict[int, float]:
-        """Retourne les probabilités de transition P(s'|s,a)"""
-        if (self._transition_probs is None or 
-            state >= self.state_space_size or 
-            action >= self.action_space_size):
-            return {}
-        
-        transitions = {}
-        for next_state in range(self.state_space_size):
-            prob = self._transition_probs[state, action, next_state]
-            if prob > 0:
-                transitions[next_state] = prob
-        
-        return transitions
-    
-    def get_reward(self, state: int, action: int) -> float:
-        """Retourne la récompense R(s,a)"""
-        if (self._reward_matrix is None or 
-            state >= self.state_space_size or 
-            action >= self.action_space_size):
-            return 0.0
-        
-        return self._reward_matrix[state, action]
-    
-    def get_transition_matrix(self) -> np.ndarray:
-        """Retourne la matrice de transition complète"""
-        return self._transition_probs.copy() if self._transition_probs is not None else None
-    
-    def get_reward_matrix(self) -> np.ndarray:
-        """Retourne la matrice de récompenses"""
-        return self._reward_matrix.copy() if self._reward_matrix is not None else None
-    
-    def is_terminal(self, state: int) -> bool:
-        """Vérifie si un état est terminal"""
-        return state == 4
-    
-    def get_terminal_states(self) -> List[int]:
-        """Retourne les états terminaux"""
-        return [4]
-    
-    def get_state_space(self) -> List[int]:
-        """Retourne la liste des états possibles"""
-        return list(range(self.state_space_size))
-    
-    def get_action_space(self) -> List[int]:
-        """Retourne la liste des actions possibles"""
-        return list(range(self.action_space_size))
-    
-    def get_rewards(self) -> List[float]:
-        """Retourne les récompenses possibles"""
-        return [-0.1, 0.0, 0.2, 0.8, 1.0]
-    
-    def render(self, mode: str = 'console'):
-        """Affiche l'état actuel de l'environnement"""
+    def render(self, mode: str = 'console') -> Optional[Any]:
+        """Affiche l'état actuel"""
         if mode == 'console':
-            print(f"=== Monty Hall Level 2 ===")
-            print(f"État: {self.step_count} - {self.get_state_description(self.step_count)}")
-            print(f"Portes restantes: {sorted(self.remaining_doors)} (total: {len(self.remaining_doors)})")
+            print(f"\n=== Monty Hall Level 2 - Phase {self.phase} ===")
+            print(f"Portes disponibles: {sorted(self.available_doors)}")
+            print(f"Porte choisie: {self.chosen_door}")
             print(f"Portes éliminées: {sorted(self.eliminated_doors)}")
-            print(f"Choix actuel de l'agent: {self.agent_choice}")
-            print(f"Actions valides: {self.valid_actions}")
             
-            if self.done:
+            if self.phase == 4:
                 print(f"Porte gagnante: {self.winning_door}")
-                result = "GAGNÉ" if self.agent_choice == self.winning_door else "PERDU"
-                print(f"Résultat: {result}")
-            print("="*30)
+                print(f"Résultat: {'GAGNÉ' if self.chosen_door == self.winning_door else 'PERDU'}")
+            
+            print(f"Actions valides: {self.valid_actions}")
+            print("=" * 40)
     
     def get_state_description(self, state: int) -> str:
-        """Description textuelle de l'état"""
-        descriptions = {
-            0: "Choix initial (5 portes)",
-            1: "Après 1ère élimination (4 portes)",
-            2: "Après 2ème élimination (3 portes)", 
-            3: "Après 3ème élimination (2 portes)",
-            4: "Partie terminée"
-        }
-        return descriptions.get(state, "État inconnu")
-    
-    def test_environment(self, num_games: int = 1000, verbose: bool = False) -> Dict[str, float]:
-        """Test de l'environnement avec différentes stratégies"""
-        strategies = {
-            'always_keep': [0, 0, 0, 0],      # Toujours maintenir
-            'always_switch': [0, 1, 1, 1],   # Toujours changer
-            'random': None                     # Choix aléatoires
-        }
+        """Description textuelle d'un état"""
+        phase, chosen_door, eliminated_doors = self._decode_state(state)
+        return (f"Phase {phase}, Porte choisie: {chosen_door}, "
+                f"Éliminées: {sorted(eliminated_doors)}")
+
+    def get_transition_probabilities(self, state: int, action: int) -> Dict[int, float]:
+        """
+        Version simplifiée et efficace des probabilités de transition.
+        """
+        phase, chosen_door, eliminated_doors = self._decode_state(state)
         
-        results = {}
+        # Pour Policy Iteration, on peut simplifier en utilisant des transitions déterministes
+        # L'aléatoire de l'élimination des portes peut être abstrait
         
-        for strategy_name, actions in strategies.items():
-            wins = 0
+        if phase == 0:
+            # Choix initial → transition vers phase 1
+            next_state = 1000 + action * 100
+            return {next_state: 1.0}
             
-            for _ in range(num_games):
-                state = self.reset()
-                done = False
-                
-                step = 0
-                while not done and step < 4:
-                    if strategy_name == 'random':
-                        valid_acts = self.valid_actions
-                        if valid_acts:
-                            action = random.choice(valid_acts)
-                        else:
-                            break
-                    else:
-                        if step == 0:
-                            action = 0  # Choix initial arbitraire
-                        else:
-                            action = actions[step]
+        elif phase < 4:
+            # Phases intermédiaires → transition déterministe vers phase suivante
+            if action == 0:
+                # Garder la porte
+                next_state = (phase + 1) * 1000 + chosen_door * 100 + (state % 100)
+            else:
+                # Changer vers une autre porte
+                new_door = action - 1
+                next_state = (phase + 1) * 1000 + new_door * 100 + (state % 100)
+            
+            return {next_state: 1.0}
+            
+        else:
+            # Phase finale → état terminal
+            return {state: 1.0}
+    
+    
+    def get_transition_probabilities2(self, state: int, action: int) -> Dict[int, float]:
+        """
+        Retourne les probabilités de transition pour la programmation dynamique.
+        
+        Dans Monty Hall, la seule source d'aléatoire est:
+        1. Le choix de la porte gagnante (au reset)
+        2. Le choix de la porte à éliminer parmi les possibles
+        """
+        # Sauvegarder l'état actuel
+        current_state_backup = self.current_state
+        phase_backup = self.phase
+        chosen_door_backup = self.chosen_door
+        eliminated_doors_backup = self.eliminated_doors.copy()
+        available_doors_backup = self.available_doors.copy()
+        
+        # Simuler la transition
+        self.current_state = state
+        phase, chosen_door, eliminated_doors = self._decode_state(state)
+        self.phase = phase
+        self.chosen_door = chosen_door
+        self.eliminated_doors = eliminated_doors
+        self.available_doors = set(range(5)) - eliminated_doors
+        
+        transitions = {}
+        
+        if self.phase < 4 and self.phase > 0:
+            # Phase avec élimination aléatoire
+            eliminable_doors = self.available_doors - {self.chosen_door, self.winning_door}
+            if eliminable_doors:
+                prob_per_elimination = 1.0 / len(eliminable_doors)
+                for eliminated_door in eliminable_doors:
+                    # Calculer l'état résultant
+                    temp_eliminated = self.eliminated_doors.copy()
+                    temp_eliminated.add(eliminated_door)
+                    temp_available = self.available_doors - {eliminated_door}
                     
-                    state, reward, done, _ = self.step(action)
-                    if done and reward == 1.0:
-                        wins += 1
-                    step += 1
-            
-            win_rate = wins / num_games
-            results[strategy_name] = win_rate
-            
-            if verbose:
-                print(f"Stratégie '{strategy_name}': {win_rate:.1%} de victoires")
+                    # Encoder le nouvel état
+                    next_state = (self.phase + 1) * 1000
+                    if self.chosen_door is not None:
+                        next_state += self.chosen_door * 100
+                    eliminated_hash = sum([2**door for door in temp_eliminated]) % 100
+                    next_state += eliminated_hash
+                    
+                    transitions[next_state] = prob_per_elimination
+            else:
+                # Pas d'élimination possible, transition déterministe
+                next_state = (self.phase + 1) * 1000
+                if self.chosen_door is not None:
+                    next_state += self.chosen_door * 100
+                transitions[next_state] = 1.0
+        else:
+            # Transition déterministe
+            if action in self.valid_actions:
+                # Simuler l'action
+                if self.phase == 0:
+                    next_state = 1000 + action * 100
+                elif self.phase == 4:
+                    next_state = state  # État final
+                else:
+                    next_state = (self.phase + 1) * 1000
+                    if action == 0:
+                        next_state += self.chosen_door * 100
+                    else:
+                        next_state += (action - 1) * 100
+                
+                transitions[next_state] = 1.0
         
-        return results
+        # Restaurer l'état
+        self.current_state = current_state_backup
+        self.phase = phase_backup
+        self.chosen_door = chosen_door_backup
+        self.eliminated_doors = eliminated_doors_backup
+        self.available_doors = available_doors_backup
+        
+        return transitions if transitions else {state: 1.0}
+    
+    def get_reward_function(self, state: int, action: int, next_state: int) -> float:
+        """Retourne la récompense pour une transition donnée"""
+        phase, chosen_door, eliminated_doors = self._decode_state(state)
+        
+        # Récompense seulement à la fin
+        if phase == 4:
+            # Action finale: récompense basée sur si la porte choisie est gagnante
+            return 1.0 if action == self.winning_door else 0.0
+        else:
+            return 0.0
+    
+    def get_terminal_states(self) -> List[int]:
+        """
+        Retourne la liste des états terminaux.
+        Dans Monty Hall Level 2, les états terminaux sont ceux de la phase 4
+        après avoir fait le choix final.
+        """
+        terminal_states = []
+        
+        # Les états terminaux correspondent à la phase 4 avec toutes les
+        # combinaisons possibles de portes choisies et éliminées
+        for chosen_door in range(5):
+            for eliminated_pattern in range(32):  # 2^5 patterns possibles
+                # Vérifier que le pattern est valide (3 portes éliminées exactement)
+                eliminated_doors = []
+                for door in range(5):
+                    if eliminated_pattern & (2**door):
+                        eliminated_doors.append(door)
+                
+                # Il doit y avoir exactement 3 portes éliminées
+                # et la porte choisie ne doit pas être éliminée
+                if len(eliminated_doors) == 3 and chosen_door not in eliminated_doors:
+                    # État terminal : phase 4 (4000) + chosen_door * 100 + pattern
+                    terminal_state = 4000 + chosen_door * 100 + (eliminated_pattern % 100)
+                    terminal_states.append(terminal_state)
+        
+        return terminal_states
+    
+    def is_terminal_state(self, state: int) -> bool:
+        """Vérifie si un état est terminal"""
+        phase, _, _ = self._decode_state(state)
+        return phase >= 4
+    
+    def get_terminal_states_infos(self) -> List[int]:
+        """
+        Retourne des informations sur la stratégie optimale.
+        Utile pour l'évaluation des algorithmes.
+        """
+        # Dans Monty Hall Level 2, la stratégie optimale théorique
+        # est de garder la même porte jusqu'au choix final, puis changer
+        return {
+            'optimal_win_probability': 4/5,  # Théorique pour 5 portes
+            'strategy': 'keep_then_switch',
+            'description': 'Garder la porte initiale pendant les éliminations, puis changer au choix final'
+        }
 
-
-# Tests
-if __name__ == "__main__":
-    print("=== Test MontyHall2 corrigé ===")
-    
-    env = MontyHall2(deterministic=True)
-    print(f"Espace d'états: {env.state_space_size}")
-    print(f"Espace d'actions: {env.action_space_size}")
-    
-    # Test d'une partie complète
-    print("\n=== Partie avec stratégie optimale (toujours changer) ===")
-    state = env.reset()
-    env.render()
-    
-    # Choix initial
-    state, reward, done, info = env.step(0)
-    print(f"Action (choix porte 0): reward={reward}")
-    env.render()
-    
-    # Toujours changer (action 1)
-    for i in [1, 2, 3]:
-        if env.valid_actions:
-            state, reward, done, info = env.step(1)  # Changer
-            print(f"Action {i+1} (changer): reward={reward}")
-            env.render()
-            if done:
-                break
-    
-    # Test des stratégies
-    print("\n=== Test des stratégies sur 1000 parties ===")
-    results = env.test_environment(1000, verbose=True)
-    
-    # Vérification cohérence DP
-    print(f"\n=== Vérification matrices DP ===")
-    P = env.get_transition_matrix()
-    R = env.get_reward_matrix()
-    print(f"Matrice P shape: {P.shape}")
-    print(f"Matrice R shape: {R.shape}")
-    
-    # Test actions invalides
-    print(f"\n=== Test actions invalides ===")
-    env.reset()
-    env.step(0)  # État 1
-    print(f"État 1, actions valides: {env.valid_actions}")
-    
-    # Test action invalide
-    state, reward, done, info = env.step(3)  # Action invalide
-    print(f"Action 3 (invalide): reward={reward}, info={info}")

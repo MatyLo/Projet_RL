@@ -8,24 +8,24 @@
 === TwoRoundRPS ===
 Round 1 - Opponent plays randomly
 Valid actions: ['Rock', 'Paper', 'Scissors']
-Q-values état 0: [0.33886327 0.09009287 1.17014542]
-Meilleure action: 2 (Q=1.170)
+Q-values état 0: [0.22960533 1.33437892 0.26504989]
+Meilleure action: 1 (Q=1.334)
 
 ⏯️ Étape 1:
-Action choisie: 2
-État: 0 → 7
+Action choisie: 1
+État: 0 → 6
 Récompense: -1.0 | Total: -1.00
 
 === TwoRoundRPS ===
-Round 2 - Opponent will play: Scissors
+Round 2 - Opponent will play: Paper
 Round 1 result: -1.0
 Valid actions: ['Rock', 'Paper', 'Scissors']
-Q-values état 7: [ 1.        -0.7902848  0.       ]
-Meilleure action: 0 (Q=1.000)
+Q-values état 6: [-0.488  0.     1.   ]
+Meilleure action: 2 (Q=1.000)
 
 ⏯️ Étape 2:
-Action choisie: 0
-État: 7 → 10
+Action choisie: 2
+État: 6 → 10
 Récompense: 1.0 | Total: 0.00
 
 === TwoRoundRPS ===

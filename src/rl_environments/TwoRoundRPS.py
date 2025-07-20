@@ -13,15 +13,16 @@ from typing import Tuple, List, Dict, Any, Optional
 import os
 import sys
 
-# Ajout des chemins
-#current_dir = os.path.dirname(os.path.abspath(__file__))
-#project_root = os.path.dirname(current_dir)
-#sys.path.append(os.path.join(project_root, 'src'))
-#sys.path.append(os.path.join(project_root, 'utils'))
+# Ajout des chemins (dé-commeenter pour faire marcher demo_rps_pygame)
+"""current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+sys.path.append(os.path.join(project_root, 'src'))
+sys.path.append(os.path.join(project_root, 'utils'))
+from rl_environments.base_environment import BaseEnvironment
+from agent import Agent"""
 
-#from base_environment import BaseEnvironment
+# A dé-commenter pour le notebook
 from src.rl_environments.base_environment import BaseEnvironment
-#from agent import Agent
 
 class TwoRoundRPSEnvironment(BaseEnvironment):
     """
