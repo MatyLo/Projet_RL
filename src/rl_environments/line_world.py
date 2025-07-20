@@ -291,6 +291,36 @@ class LineWorld(BaseEnvironment):
         """
         return self.transition_matrix.copy()
     
+    def get_transition_probabilities(self, state: int, action: int):
+        """Retourne les transitions possibles depuis un état avec une action."""
+        
+        # États terminaux restent sur place
+        if state in [0, 4]:
+            return {state: 1.0}
+        
+        # Transitions selon les règles LineWorld
+        if state == 1:
+            if action == 0:  # Left
+                return {0: 1.0}
+            else:  # Right  
+                return {2: 1.0}
+        
+        elif state == 2:
+            if action == 0:  # Left
+                return {1: 1.0}
+            else:  # Right
+                return {3: 1.0}
+        
+        elif state == 3:
+            if action == 0:  # Left
+                return {2: 1.0}
+            else:  # Right
+                return {4: 1.0}
+        
+        # Fallback
+        return {state: 1.0}
+
+    
     def get_reward_matrix(self):
         """
         Retourne la matrice de récompenses complète R(s,a,s').
