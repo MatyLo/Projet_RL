@@ -17,13 +17,13 @@ CLASSEMENT FINAL:
 1. Q_LEARNING (Aggressive)
    Performance: 1.0000
    Convergence: 50 épisodes
-   Temps: 0.021s
+   Temps: 0.007s
    Succès: 100.00%
 
 2. SARSA (Balanced)
    Performance: 1.0000
    Convergence: 50 épisodes
-   Temps: 0.006s
+   Temps: 0.008s
    Succès: 100.00%
 
 3. VALUE_ITERATION (HighDiscount)
@@ -41,25 +41,25 @@ CLASSEMENT FINAL:
 5. MONTE_CARLO_ES (Balanced)
    Performance: 1.0000
    Convergence: 50 épisodes
-   Temps: 0.023s
+   Temps: 0.021s
    Succès: 100.00%
 
 6. ON_POLICY_MC (HighExploration)
    Performance: 1.0000
    Convergence: 50 épisodes
-   Temps: 0.184s
+   Temps: 0.158s
    Succès: 100.00%
 
 7. OFF_POLICY_MC (Conservative)
    Performance: 1.0000
    Convergence: 50 épisodes
-   Temps: 0.055s
+   Temps: 0.048s
    Succès: 100.00%
 
 8. DYNA_Q (Intensive)
    Performance: 1.0000
    Convergence: 50 épisodes
-   Temps: 0.071s
+   Temps: 0.082s
    Succès: 100.00%
 
 CONCLUSION:

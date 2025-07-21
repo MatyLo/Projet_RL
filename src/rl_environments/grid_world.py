@@ -102,8 +102,8 @@ class GridWorld(BaseEnvironment):
         }
         return next_state, reward, done, info
 
-    def render(self, mode: str = 'console') -> None:
-        """Affiche une représentation textuelle de la grille."""
+    def render(self, mode: str = 'console') -> Optional[Dict[str, Any]]:
+        """Affiche une représentation de la grille."""
         if mode == 'console':
             grid = np.full((self.height, self.width), '.', dtype=str)
             gx, gy = self.goal_pos
@@ -116,7 +116,14 @@ class GridWorld(BaseEnvironment):
 
             print("\n".join([" ".join(row) for row in grid]))
             print(f"Agent à la position : {self.current_pos}, État : {self._to_state(self.current_pos)}")
-        # Le mode 'pygame' à  implémenté ici
+            
+        elif mode == 'pygame':
+            # Retourne les données nécessaires pour le rendu PyGame
+            return self._get_pygame_render_data()
+        else:
+            raise ValueError(f"Mode de rendu non supporté: {mode}")
+        
+        return None
 
     def get_state_description(self, state: int) -> str:
         """Retourne une description d'un état donné."""
@@ -166,6 +173,24 @@ class GridWorld(BaseEnvironment):
             return -3.0
         else:
             return 0.0
+    
+    def _get_pygame_render_data(self) -> Dict[str, Any]:
+        """Retourne les données nécessaires pour le rendu PyGame."""
+        return {
+            'width': self.width,
+            'height': self.height,
+            'current_pos': self.current_pos,
+            'goal_pos': self.goal_pos,
+            'losing_pos': self.losing_pos,
+            'start_pos': self.start_pos,
+            'current_state': self._to_state(self.current_pos),
+            'total_reward': self.total_reward,
+            'episode_step': self.episode_step,
+            'valid_actions': self.valid_actions,
+            'action_names': self.ACTION_NAMES,
+            'terminal_positions': self.terminal_positions,
+            'done': self.current_pos in self.terminal_positions
+        }
 
     # --- Méthodes Utilitaires ---
 

@@ -19,52 +19,52 @@ CLASSEMENT FINAL - GRIDWORLD:
 1. SARSA (Balanced)
    Performance: 1.0000
    Convergence: 100 épisodes
-   Temps: 0.036s
+   Temps: 0.041s
    Succès: 100.00%
 
 2. VALUE_ITERATION (Fast)
    Performance: 1.0000
    Convergence: 1 épisodes
-   Temps: 0.063s
+   Temps: 0.067s
    Succès: 100.00%
 
 3. POLICY_ITERATION (Fast)
    Performance: 1.0000
    Convergence: 1 épisodes
-   Temps: 0.009s
+   Temps: 0.010s
    Succès: 100.00%
 
 4. MONTE_CARLO_ES (Balanced)
    Performance: 1.0000
    Convergence: 100 épisodes
-   Temps: 0.218s
+   Temps: 0.240s
    Succès: 100.00%
 
 5. ON_POLICY_MC (HighExploration)
    Performance: 1.0000
    Convergence: 100 épisodes
-   Temps: 1.135s
+   Temps: 1.122s
    Succès: 100.00%
 
 6. DYNA_Q (Standard)
-   Performance: 1.0000
-   Convergence: 100 épisodes
-   Temps: 3.280s
-   Succès: 100.00%
-
-7. OFF_POLICY_MC (LowExploration)
    Performance: 0.5000
    Convergence: 100 épisodes
-   Temps: 3.553s
+   Temps: 7.663s
    Succès: 50.00%
 
-8. Q_LEARNING (Aggressive)
+7. Q_LEARNING (Aggressive)
    Performance: 0.0000
    Convergence: 100 épisodes
-   Temps: 2.123s
+   Temps: 2.148s
    Succès: 0.00%
 
-RECOMMANDATIONS - GRIDWORLD:
+8. OFF_POLICY_MC (Conservative)
+   Performance: 0.0000
+   Convergence: 100 épisodes
+   Temps: 7.501s
+   Succès: 0.00%
+
+CONCLUSIONS:
 ----------------------------
 • Meilleure performance globale: SARSA
 • Convergence la plus rapide: VALUE_ITERATION
@@ -74,7 +74,7 @@ ANALYSE PAR CATÉGORIE - GRIDWORLD:
   Meilleur: sarsa
 • Programmation Dynamique: 1.0000 ± 0.0000
   Meilleur: value_iteration
-• Monte Carlo: 0.7500 ± 0.4423
+• Monte Carlo: 0.6250 ± 0.4945
   Meilleur: monte_carlo_es
-• Planning: 0.3750 ± 0.5175
+• Planning: 0.1250 ± 0.3536
   Meilleur: dyna_q
