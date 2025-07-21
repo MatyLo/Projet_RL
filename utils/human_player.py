@@ -308,11 +308,11 @@ class HumanPlayer:
             if key == pygame.K_UP or key == pygame.K_w:
                 return 0  # Haut
             elif key == pygame.K_RIGHT or key == pygame.K_d:
-                return 1  # Droite
+                return 3  # Droite
             elif key == pygame.K_DOWN or key == pygame.K_s:
-                return 2  # Bas
+                return 1  # Bas
             elif key == pygame.K_LEFT or key == pygame.K_a:
-                return 3  # Gauche
+                return 2  # Gauche
                 
         elif "monty" in self.environment.env_name.lower():
             # Monty Hall: Chiffres 1-3 ou 1-5
@@ -406,22 +406,69 @@ class HumanPlayer:
             self.screen.blit(text, (50, 20 + i * 25))
     
     def _render_gridworld_pygame(self, state: int, episode_data: Dict[str, Any], 
-                               show_rewards: bool, WHITE, BLACK, BLUE, GREEN, RED, GRAY):
+                            show_rewards: bool, WHITE, BLACK, BLUE, GREEN, RED, GRAY):
         """Rendu spécifique pour GridWorld."""
-        # TODO: Implémentation GridWorld PyGame
-        # Pour l'instant, rendu basique
-        text = self.font.render("GridWorld PyGame - En cours d'implémentation", True, BLACK)
-        self.screen.blit(text, (50, 50))
+        # Obtenir les données de rendu depuis l'environnement
+        render_data = self.environment.render(mode='pygame')
         
-        text2 = self.font.render(f"État actuel: {state}", True, BLACK)
-        self.screen.blit(text2, (50, 100))
+        if not render_data:
+            return
         
+        # Configuration de la grille
+        cell_size = 80
+        margin = 10
+        grid_width = render_data['width']
+        grid_height = render_data['height']
+        
+        start_x = 50
+        start_y = 80
+        
+        # Dessiner la grille
+        for row in range(grid_height):
+            for col in range(grid_width):
+                x = start_x + col * cell_size
+                y = start_y + row * cell_size
+                
+                # Déterminer la couleur de la cellule
+                current_pos = (col, row)
+                
+                if current_pos == render_data['current_pos']:
+                    color = BLUE  # Agent
+                elif current_pos == render_data['goal_pos']:
+                    color = GREEN  # Goal
+                elif current_pos == render_data['losing_pos']:
+                    color = RED  # Losing position
+                else:
+                    color = WHITE  # Empty cell
+                
+                # Dessiner la cellule
+                pygame.draw.rect(self.screen, color, (x, y, cell_size, cell_size))
+                pygame.draw.rect(self.screen, BLACK, (x, y, cell_size, cell_size), 2)
+                
+                # Ajouter les labels
+                if current_pos == render_data['goal_pos']:
+                    text = self.small_font.render('G', True, BLACK)
+                    text_rect = text.get_rect(center=(x + cell_size//2, y + cell_size//2))
+                    self.screen.blit(text, text_rect)
+                elif current_pos == render_data['losing_pos']:
+                    text = self.small_font.render('L', True, WHITE)
+                    text_rect = text.get_rect(center=(x + cell_size//2, y + cell_size//2))
+                    self.screen.blit(text, text_rect)
+                elif current_pos == render_data['current_pos']:
+                    text = self.small_font.render('A', True, WHITE)
+                    text_rect = text.get_rect(center=(x + cell_size//2, y + cell_size//2))
+                    self.screen.blit(text, text_rect)
+        
+        # Instructions
         instructions = [
-            "Utilisez les flèches ↑↓←→ ou WASD pour vous déplacer"
+            "Utilisez les flèches ↑↓←→ ou WASD pour vous déplacer",
+            "G = Goal (+1.0), L = Losing (-3.0), A = Agent"
         ]
         for i, instruction in enumerate(instructions):
             text = self.small_font.render(instruction, True, BLACK)
-            self.screen.blit(text, (50, 150 + i * 25))
+            self.screen.blit(text, (50, 20 + i * 25))
+
+
     
     def _render_generic_pygame(self, state: int, episode_data: Dict[str, Any], 
                              show_rewards: bool, WHITE, BLACK, BLUE):

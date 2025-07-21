@@ -1,0 +1,18 @@
+{
+  "algorithm": "off_policy_mc",
+  "environment": "GridWorld",
+  "date": "20250721_105420",
+  "hyperparameters": {
+    "gamma": 0.97,
+    "theta": null,
+    "max_iterations": null
+  },
+  "metrics": {
+    "final_performance": 0.0,
+    "algorithm_type": "off_policy_mc",
+    "configuration": "Conservative",
+    "training_time": 1753088060.204753,
+    "environment": "GridWorld",
+    "environment_complexity": "5x5 grid, 25 states, 4 actions"
+  }
+}

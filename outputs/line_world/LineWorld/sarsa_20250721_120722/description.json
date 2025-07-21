@@ -1,0 +1,19 @@
+{
+  "algorithm": "sarsa",
+  "environment": "LineWorld",
+  "date": "20250721_120722",
+  "hyperparameters": {
+    "learning_rate": 0.08,
+    "gamma": 0.99,
+    "epsilon": 0.005,
+    "epsilon_decay": 0.997,
+    "epsilon_min": 0.005
+  },
+  "metrics": {
+    "final_performance": 1.0,
+    "algorithm_type": "sarsa",
+    "configuration": "Balanced",
+    "training_time": 1753092442.8416882,
+    "environment": "LineWorld"
+  }
+}
